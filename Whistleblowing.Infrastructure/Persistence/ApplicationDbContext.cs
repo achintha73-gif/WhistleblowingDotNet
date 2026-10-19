@@ -1,16 +1,16 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Whistleblowing.Application.Common.Interfaces;
 using Whistleblowing.Domain.Entities;
 
 namespace Whistleblowing.Infrastructure.Persistence;
 
-public class ApplicationDbContext : DbContext
+public class ApplicationDbContext : DbContext, IApplicationDbContext
 {
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
     }
 
-    // DbSets — one per entity
     public DbSet<Role> Roles => Set<Role>();
     public DbSet<Department> Departments => Set<Department>();
     public DbSet<User> Users => Set<User>();
@@ -27,8 +27,6 @@ public class ApplicationDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-
-        // Apply all IEntityTypeConfiguration classes from this assembly
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }
