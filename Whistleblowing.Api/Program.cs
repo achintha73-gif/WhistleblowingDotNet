@@ -6,7 +6,7 @@ using System.Text;
 using Whistleblowing.Api;
 using Whistleblowing.Api.Middleware;
 using Whistleblowing.Api.Services;
-using Whistleblowing.Application.Common.Behaviours; 
+using Whistleblowing.Application.Common.Behaviours;
 using Whistleblowing.Application.Common.Interfaces;
 using Whistleblowing.Application.Features.Auth.Commands.Login;
 using Whistleblowing.Infrastructure;
@@ -16,6 +16,17 @@ var builder = WebApplication.CreateBuilder(args);
 // Controllers
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+
+// CORS (React එකට API එකට කතා කරන්න)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApp", policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+              .AllowAnyHeader()
+              .AllowAnyMethod();
+    });
+});
 
 // Swagger with JWT support
 builder.Services.AddSwaggerGen(options =>
@@ -43,17 +54,9 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddMediatR(cfg =>
 {
     cfg.RegisterServicesFromAssembly(typeof(LoginCommand).Assembly);
-
-    // 1. Request Logging Behaviour (හැම request එකක්ම log වෙන්න)
     cfg.AddOpenBehavior(typeof(RequestLoggingBehaviour<,>));
-
-    // 2. Validation Behaviour (Validation error එහෙම ආවොත් block කරන්න)
     cfg.AddOpenBehavior(typeof(ValidationBehaviour<,>));
-
-    // 3. Exception Handling Behaviour (Errors ටික catch කරන්න)
     cfg.AddOpenBehavior(typeof(ExceptionHandlingBehaviour<,>));
-
-    // 4. Transaction Behaviour (SaveChanges එකක් තිබ්බොත් Transaction එකක් අරින්න)
     cfg.AddOpenBehavior(typeof(TransactionBehaviour<,>));
 });
 
@@ -62,14 +65,6 @@ var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("JWT Secret missing in config.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "WhistleblowingSystem";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "WhistleblowingSystemUsers";
-
-// 🔍 DEBUG: Verify secret is loaded correctly
-Console.WriteLine("========================================");
-Console.WriteLine($"[PROGRAM] Jwt:Secret length = {jwtSecret.Length}");
-Console.WriteLine($"[PROGRAM] Jwt:Secret = {jwtSecret}");
-Console.WriteLine($"[PROGRAM] Jwt:Issuer = {jwtIssuer}");
-Console.WriteLine($"[PROGRAM] Jwt:Audience = {jwtAudience}");
-Console.WriteLine("========================================");
 
 // JWT Authentication
 builder.Services
@@ -90,29 +85,6 @@ builder.Services
             ValidAudience = jwtAudience,
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
             ClockSkew = TimeSpan.Zero
-        };
-
-        // 🔍 DEBUG: Log auth failures
-        options.Events = new JwtBearerEvents
-        {
-            OnAuthenticationFailed = context =>
-            {
-                Console.WriteLine("========================================");
-                Console.WriteLine($"[AUTH FAILED] {context.Exception.GetType().Name}");
-                Console.WriteLine($"[AUTH FAILED] Message: {context.Exception.Message}");
-                Console.WriteLine("========================================");
-                return Task.CompletedTask;
-            },
-            OnTokenValidated = context =>
-            {
-                Console.WriteLine("[AUTH SUCCESS] Token validated");
-                return Task.CompletedTask;
-            },
-            OnChallenge = context =>
-            {
-                Console.WriteLine($"[AUTH CHALLENGE] {context.ErrorDescription}");
-                return Task.CompletedTask;
-            }
         };
     });
 
@@ -138,6 +110,16 @@ catch (Exception ex)
 // Middleware
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 
+// wwwroot folder
+var wwwrootPath = Path.Combine(app.Environment.ContentRootPath, "wwwroot");
+if (!Directory.Exists(wwwrootPath))
+{
+    Directory.CreateDirectory(wwwrootPath);
+}
+
+app.UseDefaultFiles();
+app.UseStaticFiles();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -145,6 +127,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+
+app.UseCors("AllowReactApp");
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
