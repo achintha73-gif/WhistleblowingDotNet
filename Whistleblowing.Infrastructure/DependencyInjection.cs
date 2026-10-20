@@ -25,6 +25,9 @@ public static class DependencyInjection
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
         services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        
+        // 👉 මේකයි අපේ අලුත් Dapper Registration එක
+        services.AddSingleton<IDapperContext, DapperContext>();
 
         return services;
     }

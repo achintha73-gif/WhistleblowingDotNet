@@ -1,3 +1,4 @@
+using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
@@ -5,6 +6,7 @@ using System.Text;
 using Whistleblowing.Api;
 using Whistleblowing.Api.Middleware;
 using Whistleblowing.Api.Services;
+using Whistleblowing.Application.Common.Behaviours; 
 using Whistleblowing.Application.Common.Interfaces;
 using Whistleblowing.Application.Features.Auth.Commands.Login;
 using Whistleblowing.Infrastructure;
@@ -37,9 +39,23 @@ builder.Services.AddSwaggerGen(options =>
 // Infrastructure (DbContext, JwtTokenGenerator, PasswordHasher)
 builder.Services.AddInfrastructure(builder.Configuration);
 
-// MediatR
+// MediatR + Pipeline Behaviours
 builder.Services.AddMediatR(cfg =>
-    cfg.RegisterServicesFromAssembly(typeof(LoginCommand).Assembly));
+{
+    cfg.RegisterServicesFromAssembly(typeof(LoginCommand).Assembly);
+
+    // 1. Request Logging Behaviour (හැම request එකක්ම log වෙන්න)
+    cfg.AddOpenBehavior(typeof(RequestLoggingBehaviour<,>));
+
+    // 2. Validation Behaviour (Validation error එහෙම ආවොත් block කරන්න)
+    cfg.AddOpenBehavior(typeof(ValidationBehaviour<,>));
+
+    // 3. Exception Handling Behaviour (Errors ටික catch කරන්න)
+    cfg.AddOpenBehavior(typeof(ExceptionHandlingBehaviour<,>));
+
+    // 4. Transaction Behaviour (SaveChanges එකක් තිබ්බොත් Transaction එකක් අරින්න)
+    cfg.AddOpenBehavior(typeof(TransactionBehaviour<,>));
+});
 
 // JWT Configuration
 var jwtSecret = builder.Configuration["Jwt:Secret"]

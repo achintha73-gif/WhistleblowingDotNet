@@ -1,12 +1,9 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Whistleblowing.Domain.Entities;
 
 namespace Whistleblowing.Application.Common.Interfaces;
 
-/// <summary>
-/// Abstraction over the application's database context.
-/// Provides access to DbSets without coupling to Infrastructure.
-/// </summary>
 public interface IApplicationDbContext
 {
     DbSet<Role> Roles { get; }
@@ -21,6 +18,9 @@ public interface IApplicationDbContext
     DbSet<Notification> Notifications { get; }
     DbSet<SystemSetting> SystemSettings { get; }
     DbSet<PasswordResetToken> PasswordResetTokens { get; }
+
+    // අලුතෙන් එකතු කළා (Transaction Behaviour එකට ඕන)
+    DatabaseFacade Database { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

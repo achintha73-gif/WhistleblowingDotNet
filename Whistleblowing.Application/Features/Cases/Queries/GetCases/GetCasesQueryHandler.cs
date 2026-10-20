@@ -1,58 +1,65 @@
+using Dapper;
 using MediatR;
-using Microsoft.EntityFrameworkCore;
 using Whistleblowing.Application.Common.Interfaces;
 using Whistleblowing.Application.Features.Cases.DTOs;
-using Whistleblowing.Domain.Enums;
 
 namespace Whistleblowing.Application.Features.Cases.Queries.GetCases;
 
 public class GetCasesQueryHandler : IRequestHandler<GetCasesQuery, List<CaseDto>>
 {
-    private readonly IApplicationDbContext _context;
+    private readonly IDapperContext _dapperContext;
     private readonly ICurrentUserService _currentUser;
 
-    public GetCasesQueryHandler(IApplicationDbContext context, ICurrentUserService currentUser)
+    public GetCasesQueryHandler(IDapperContext dapperContext, ICurrentUserService currentUser)
     {
-        _context = context;
+        _dapperContext = dapperContext;
         _currentUser = currentUser;
     }
 
     public async Task<List<CaseDto>> Handle(GetCasesQuery request, CancellationToken cancellationToken)
     {
-        var query = _context.Cases
-            .Include(c => c.Complaint)
-            .Include(c => c.AssignedInvestigator)
-            .AsNoTracking()
-            .AsQueryable();
+        using var connection = _dapperContext.CreateConnection();
 
-        // Role-based filtering
+        var sql = @"
+            SELECT 
+                c.CaseId, 
+                c.ComplaintId, 
+                comp.Title AS ComplaintTitle, 
+                c.Status, 
+                c.Priority, 
+                c.AssignedInvestigatorId, 
+                u.Name AS InvestigatorName, 
+                c.CreatedAt, 
+                c.UpdatedAt
+            FROM Cases c
+            INNER JOIN Complaints comp ON c.ComplaintId = comp.ComplaintId
+            LEFT JOIN Users u ON c.AssignedInvestigatorId = u.UserId
+            WHERE 1=1
+        ";
+
+        // Role-based filter
         if (_currentUser.Role == "INVESTIGATOR")
         {
-            query = query.Where(c => c.AssignedInvestigatorId == _currentUser.UserId);
+            sql += " AND c.AssignedInvestigatorId = @UserId";
         }
 
-        // Optional status filter
-        if (!string.IsNullOrEmpty(request.Status) && Enum.TryParse<CaseStatus>(request.Status, true, out var statusEnum))
+        // Optional Status filter
+        if (!string.IsNullOrEmpty(request.Status))
         {
-            query = query.Where(c => c.Status == statusEnum);
+            sql += " AND c.Status = @Status";
         }
 
-        var cases = await query
-            .OrderByDescending(c => c.CreatedAt)
-            .Select(c => new CaseDto
-            {
-                CaseId = c.CaseId,
-                ComplaintId = c.ComplaintId,
-                ComplaintTitle = c.Complaint.Title,
-                Status = c.Status,
-                Priority = c.Priority,
-                AssignedInvestigatorId = c.AssignedInvestigatorId,
-                InvestigatorName = c.AssignedInvestigator != null ? c.AssignedInvestigator.Name : null,
-                CreatedAt = c.CreatedAt,
-                UpdatedAt = c.UpdatedAt
-            })
-            .ToListAsync(cancellationToken);
+        sql += " ORDER BY c.CreatedAt DESC";
 
-        return cases;
+        var parameters = new DynamicParameters();
+        if (_currentUser.Role == "INVESTIGATOR")
+            parameters.Add("@UserId", _currentUser.UserId);
+        if (!string.IsNullOrEmpty(request.Status))
+            parameters.Add("@Status", request.Status);
+
+        // Dapper maps the results to List<CaseDto> automatically
+        var cases = await connection.QueryAsync<CaseDto>(sql, parameters);
+
+        return cases.ToList();
     }
 }
