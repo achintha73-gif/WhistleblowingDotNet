@@ -45,7 +45,7 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("SubmittedBy")
+                    b.Property<int?>("SubmittedBy")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
@@ -523,8 +523,7 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.HasOne("Whistleblowing.Domain.Entities.User", "SubmittedByUser")
                         .WithMany("AdditionalInfo")
                         .HasForeignKey("SubmittedBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Complaint");
 

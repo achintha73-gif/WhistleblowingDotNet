@@ -29,6 +29,15 @@ public class JwtTokenGenerator : IJwtTokenGenerator
         var audience = _configuration["Jwt:Audience"] ?? "WhistleblowingSystemUsers";
         var expiryDays = int.TryParse(_configuration["Jwt:ExpiryDays"], out var d) ? d : 7;
 
+        // 🔍 DEBUG: Verify secret matches what Program.cs has
+        Console.WriteLine("========================================");
+        Console.WriteLine($"[JWT GEN] Secret length = {secret.Length}");
+        Console.WriteLine($"[JWT GEN] Secret = {secret}");
+        Console.WriteLine($"[JWT GEN] Issuer = {issuer}");
+        Console.WriteLine($"[JWT GEN] Audience = {audience}");
+        Console.WriteLine($"[JWT GEN] UserId = {userId}, Role = {roleName}");
+        Console.WriteLine("========================================");
+
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secret));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 

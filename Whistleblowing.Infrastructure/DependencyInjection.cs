@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Whistleblowing.Application.Common.Interfaces;
@@ -14,7 +14,6 @@ public static class DependencyInjection
         IConfiguration configuration
     )
     {
-        // DbContext
         services.AddDbContext<ApplicationDbContext>(options =>
             options.UseSqlServer(
                 configuration.GetConnectionString("DefaultConnection")
@@ -23,9 +22,9 @@ public static class DependencyInjection
         services.AddScoped<IApplicationDbContext>(provider =>
             provider.GetRequiredService<ApplicationDbContext>());
 
-        // Services
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IPasswordHasher, BCryptPasswordHasher>();
+        services.AddScoped<IFileStorageService, LocalFileStorageService>();
 
         return services;
     }

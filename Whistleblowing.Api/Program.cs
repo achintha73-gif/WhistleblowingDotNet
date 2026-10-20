@@ -1,9 +1,11 @@
-using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
+using System.Text;
 using Whistleblowing.Api;
 using Whistleblowing.Api.Middleware;
+using Whistleblowing.Api.Services;
+using Whistleblowing.Application.Common.Interfaces;
 using Whistleblowing.Application.Features.Auth.Commands.Login;
 using Whistleblowing.Infrastructure;
 
@@ -39,12 +41,21 @@ builder.Services.AddInfrastructure(builder.Configuration);
 builder.Services.AddMediatR(cfg =>
     cfg.RegisterServicesFromAssembly(typeof(LoginCommand).Assembly));
 
-// JWT Authentication
+// JWT Configuration
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("JWT Secret missing in config.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "WhistleblowingSystem";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "WhistleblowingSystemUsers";
 
+// 🔍 DEBUG: Verify secret is loaded correctly
+Console.WriteLine("========================================");
+Console.WriteLine($"[PROGRAM] Jwt:Secret length = {jwtSecret.Length}");
+Console.WriteLine($"[PROGRAM] Jwt:Secret = {jwtSecret}");
+Console.WriteLine($"[PROGRAM] Jwt:Issuer = {jwtIssuer}");
+Console.WriteLine($"[PROGRAM] Jwt:Audience = {jwtAudience}");
+Console.WriteLine("========================================");
+
+// JWT Authentication
 builder.Services
     .AddAuthentication(options =>
     {
@@ -64,9 +75,36 @@ builder.Services
             IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
             ClockSkew = TimeSpan.Zero
         };
+
+        // 🔍 DEBUG: Log auth failures
+        options.Events = new JwtBearerEvents
+        {
+            OnAuthenticationFailed = context =>
+            {
+                Console.WriteLine("========================================");
+                Console.WriteLine($"[AUTH FAILED] {context.Exception.GetType().Name}");
+                Console.WriteLine($"[AUTH FAILED] Message: {context.Exception.Message}");
+                Console.WriteLine("========================================");
+                return Task.CompletedTask;
+            },
+            OnTokenValidated = context =>
+            {
+                Console.WriteLine("[AUTH SUCCESS] Token validated");
+                return Task.CompletedTask;
+            },
+            OnChallenge = context =>
+            {
+                Console.WriteLine($"[AUTH CHALLENGE] {context.ErrorDescription}");
+                return Task.CompletedTask;
+            }
+        };
     });
 
 builder.Services.AddAuthorization();
+
+// ICurrentUserService
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 var app = builder.Build();
 

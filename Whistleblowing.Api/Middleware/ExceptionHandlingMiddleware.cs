@@ -25,8 +25,13 @@ public class ExceptionHandlingMiddleware
         }
         catch (UnauthorizedAccessException ex)
         {
-            _logger.LogWarning(ex, "Unauthorized access: {Message}", ex.Message);
+            _logger.LogWarning(ex, "Unauthorized: {Message}", ex.Message);
             await WriteErrorAsync(context, HttpStatusCode.Unauthorized, ex.Message);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            _logger.LogWarning(ex, "Not found: {Message}", ex.Message);
+            await WriteErrorAsync(context, HttpStatusCode.NotFound, ex.Message);
         }
         catch (InvalidOperationException ex)
         {

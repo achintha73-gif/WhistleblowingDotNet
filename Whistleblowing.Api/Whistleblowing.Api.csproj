@@ -21,4 +21,8 @@
     <ProjectReference Include="..\Whistleblowing.Infrastructure\Whistleblowing.Infrastructure.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="private-uploads\.gitkeep\" />
+  </ItemGroup>
+
 </Project>

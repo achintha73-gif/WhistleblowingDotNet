@@ -493,3 +493,8 @@ $RECYCLE.BIN/
 .vs/
 *.user
 *.suo
+
+
+# Private uploads (evidence files)
+Whistleblowing.Api/private-uploads/*
+!Whistleblowing.Api/private-uploads/.gitkeep
