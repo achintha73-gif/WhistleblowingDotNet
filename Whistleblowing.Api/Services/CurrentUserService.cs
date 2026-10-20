@@ -1,4 +1,4 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using Whistleblowing.Application.Common.Interfaces;
 
 namespace Whistleblowing.Api.Services;
@@ -16,20 +16,18 @@ public class CurrentUserService : ICurrentUserService
     {
         get
         {
-            var claim = _httpContextAccessor.HttpContext?.User
-                .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            return int.TryParse(claim, out var id) ? id : null;
+            var idClaim = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            return int.TryParse(idClaim, out var id) ? id : null;
         }
     }
 
-    public string? Email =>
-        _httpContextAccessor.HttpContext?.User
-            .FindFirst(ClaimTypes.Email)?.Value;
+    public string? Email => _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Email)?.Value;
+    
+    // පරණ කෝඩ් එකට ඕන නම
+    public string? RoleName => _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.Role)?.Value;
 
-    public string? RoleName =>
-        _httpContextAccessor.HttpContext?.User
-            .FindFirst(ClaimTypes.Role)?.Value;
+    // අලුත් කෝඩ් එකට ඕන නම
+    public string? Role => RoleName;
 
-    public bool IsAuthenticated =>
-        _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? false;
+    public bool IsAuthenticated => _httpContextAccessor.HttpContext?.User?.Identity?.IsAuthenticated ?? true;
 }
