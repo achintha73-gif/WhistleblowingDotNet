@@ -16,6 +16,7 @@ public class ApplicationDbContext : DbContext, IApplicationDbContext
     public DbSet<User> Users => Set<User>();
     public DbSet<Complaint> Complaints => Set<Complaint>();
     public DbSet<Case> Cases => Set<Case>();
+    public DbSet<CaseInvestigator> CaseInvestigators => Set<CaseInvestigator>();
     public DbSet<Evidence> Evidence => Set<Evidence>();
     public DbSet<InvestigationReport> InvestigationReports => Set<InvestigationReport>();
     public DbSet<CaseStatusHistory> CaseStatusHistories => Set<CaseStatusHistory>();

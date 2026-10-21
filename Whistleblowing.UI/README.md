@@ -1,5 +1,19 @@
 # React + Vite
 
+## Password reset email
+
+The API sends password reset links through SMTP. Configure these values for the API process using .NET environment variables or user secrets (double underscores map to configuration sections):
+
+- `Email__SmtpHost`
+- `Email__Port` (typically `587`)
+- `Email__EnableSsl` (`true`)
+- `Email__Username`
+- `Email__Password`
+- `Email__From`
+- `Email__FrontendBaseUrl` (for local development, `http://localhost:5173`)
+
+For local development, from `Whistleblowing.Api`, set the SMTP values with `dotnet user-secrets set "Email:SmtpHost" "your-smtp-host"` and the corresponding `Email:Port`, `Email:EnableSsl`, `Email:Username`, `Email:Password`, `Email:From`, and `Email:FrontendBaseUrl` keys. Use an app password where the mail provider requires one. Keep SMTP credentials out of source control. The API reports an explicit configuration/send error when delivery is unavailable; failed reset links are invalidated, and successful links expire after 30 minutes and can only be used once.
+
 This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
 
 Currently, two official plugins are available:

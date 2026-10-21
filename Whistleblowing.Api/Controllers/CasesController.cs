@@ -1,12 +1,15 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Whistleblowing.Application.Common.Interfaces;
 using Whistleblowing.Application.Features.Cases.Commands.AssignInvestigator;
 using Whistleblowing.Application.Features.Cases.Commands.ConvertComplaint;
 using Whistleblowing.Application.Features.Cases.Commands.SubmitReport;
 using Whistleblowing.Application.Features.Cases.Commands.UpdateCaseStatus;
 using Whistleblowing.Application.Features.Cases.Queries.GetCases;
 using Whistleblowing.Domain.Enums;
+using Whistleblowing.Api.Models.Cases;
 
 namespace Whistleblowing.Api.Controllers;
 
@@ -16,10 +19,27 @@ namespace Whistleblowing.Api.Controllers;
 public class CasesController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IApplicationDbContext _context;
 
-    public CasesController(IMediator mediator)
+    public CasesController(IMediator mediator, IApplicationDbContext context)
     {
         _mediator = mediator;
+        _context = context;
+    }
+
+    [HttpGet("investigators")]
+    [Authorize(Roles = "ADMIN,MANAGER")]
+    public async Task<IActionResult> GetInvestigators(CancellationToken cancellationToken)
+    {
+        var investigators = await _context.Users.Where(user => user.Role.RoleName == "INVESTIGATOR" && user.Status == Whistleblowing.Domain.Enums.UserStatus.ACTIVE)
+            .OrderBy(user => user.Name).Select(user => new
+            {
+                user.UserId,
+                user.Name,
+                user.Email,
+                DepartmentName = user.Department == null ? null : user.Department.DepartmentName
+            }).ToListAsync(cancellationToken);
+        return Ok(investigators);
     }
 
     [HttpGet]
@@ -49,10 +69,30 @@ public class CasesController : ControllerBase
         [FromRoute] int caseId,
         [FromRoute] int investigatorId)
     {
-        var command = new AssignInvestigatorCommand { CaseId = caseId, InvestigatorId = investigatorId };
+        var command = new AssignInvestigatorCommand { CaseId = caseId, InvestigatorIds = new List<int> { investigatorId } };
         var success = await _mediator.Send(command);
         if (!success) return NotFound(new { error = "Case not found." });
         return Ok(new { message = "Investigator successfully assigned." });
+    }
+
+    [HttpPost("{caseId:int}/assignments")]
+    [Authorize(Roles = "ADMIN,MANAGER")]
+    public async Task<IActionResult> AssignInvestigators(
+        [FromRoute] int caseId,
+        [FromBody] AssignInvestigatorsRequest request,
+        CancellationToken cancellationToken)
+    {
+        if (request?.InvestigatorIds is null || request.InvestigatorIds.Count == 0)
+            return BadRequest(new { error = "Select at least one investigator." });
+
+        var command = new AssignInvestigatorCommand
+        {
+            CaseId = caseId,
+            InvestigatorIds = request.InvestigatorIds
+        };
+        var success = await _mediator.Send(command, cancellationToken);
+        if (!success) return NotFound(new { error = "Case not found." });
+        return Ok(new { message = "Investigators successfully assigned." });
     }
 
     [HttpPut("{caseId:int}/status")]

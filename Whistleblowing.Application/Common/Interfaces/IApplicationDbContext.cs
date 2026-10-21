@@ -11,6 +11,7 @@ public interface IApplicationDbContext
     DbSet<User> Users { get; }
     DbSet<Complaint> Complaints { get; }
     DbSet<Case> Cases { get; }
+    DbSet<CaseInvestigator> CaseInvestigators { get; }
     DbSet<Evidence> Evidence { get; }
     DbSet<InvestigationReport> InvestigationReports { get; }
     DbSet<CaseStatusHistory> CaseStatusHistories { get; }

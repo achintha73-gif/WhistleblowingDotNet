@@ -498,3 +498,4 @@ $RECYCLE.BIN/
 # Private uploads (evidence files)
 Whistleblowing.Api/private-uploads/*
 !Whistleblowing.Api/private-uploads/.gitkeep
+Whistleblowing.Api/private-uploads/data-protection-keys/

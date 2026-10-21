@@ -19,7 +19,8 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, int>
 
     public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
-        var emailExists = await _context.Users.AnyAsync(u => u.Email == request.Email, cancellationToken);
+        var email = request.Email.Trim().ToLowerInvariant();
+        var emailExists = await _context.Users.AnyAsync(u => u.Email.ToLower() == email, cancellationToken);
         if (emailExists)
         {
             throw new InvalidOperationException("Email is already registered.");
@@ -33,8 +34,8 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, int>
 
         var user = new User
         {
-            Name = request.Name,
-            Email = request.Email,
+            Name = request.Name.Trim(),
+            Email = email,
             Password = _passwordHasher.Hash(request.Password), // 👈 හරි Method එක
             RoleId = role.RoleId,
             Status = UserStatus.ACTIVE,

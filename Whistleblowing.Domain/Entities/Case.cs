@@ -17,6 +17,7 @@ public class Case
     // Navigation
     public Complaint Complaint { get; set; } = null!;
     public User? AssignedInvestigator { get; set; }
+    public ICollection<CaseInvestigator> InvestigatorAssignments { get; set; } = new List<CaseInvestigator>();
     public ICollection<CaseStatusHistory> StatusHistory { get; set; } = new List<CaseStatusHistory>();
     public ICollection<Evidence> Evidence { get; set; } = new List<Evidence>();
     public InvestigationReport? InvestigationReport { get; set; }

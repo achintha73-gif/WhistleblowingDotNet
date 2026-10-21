@@ -27,6 +27,7 @@ public class User
     public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     public ICollection<SystemSetting> SystemSettings { get; set; } = new List<SystemSetting>();
     public ICollection<Case> AssignedCases { get; set; } = new List<Case>();
+    public ICollection<CaseInvestigator> CaseAssignments { get; set; } = new List<CaseInvestigator>();
     public ICollection<Evidence> UploadedEvidence { get; set; } = new List<Evidence>();
     public ICollection<PasswordResetToken> PasswordResetTokens { get; set; } = new List<PasswordResetToken>();
 }

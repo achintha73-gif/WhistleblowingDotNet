@@ -18,4 +18,16 @@ public class ComplaintDto
     public int? AuthorId { get; set; }
     public string? AuthorName { get; set; }
     public string? AuthorEmail { get; set; }
+    public List<Whistleblowing.Application.Features.Evidence.DTOs.EvidenceDto> Evidence { get; set; } = new();
+    public List<AdditionalInformationDto> AdditionalInformation { get; set; } = new();
+}
+
+public class AdditionalInformationDto
+{
+    public int InfoId { get; set; }
+    public string Title { get; set; } = string.Empty;
+    public string Description { get; set; } = string.Empty;
+    public string InformationType { get; set; } = string.Empty;
+    public DateTime SubmittedAt { get; set; }
+    public string? SubmittedByName { get; set; }
 }

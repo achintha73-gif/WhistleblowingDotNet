@@ -55,6 +55,39 @@ public class GetComplaintByIdQueryHandler
             return null;
         }
 
+        var evidence = await _context.Evidence
+            .Where(item => item.ComplaintId == complaint.ComplaintId)
+            .OrderByDescending(item => item.UploadedAt)
+            .Select(item => new Whistleblowing.Application.Features.Evidence.DTOs.EvidenceDto
+            {
+                EvidenceId = item.EvidenceId,
+                ComplaintId = item.ComplaintId,
+                CaseId = item.CaseId,
+                FileName = item.FileName,
+                FileType = item.FileType,
+                FileSize = item.FileSize,
+                Description = item.Description,
+                UploadedAt = item.UploadedAt,
+                UploadedBy = item.UploadedBy,
+                UploaderName = item.Uploader == null ? null : item.Uploader.Name,
+                HasFile = item.FilePath != null
+            })
+            .ToListAsync(cancellationToken);
+
+        var additionalInformation = await _context.AdditionalInformations
+            .Where(item => item.ComplaintId == complaint.ComplaintId)
+            .OrderByDescending(item => item.SubmittedAt)
+            .Select(item => new AdditionalInformationDto
+            {
+                InfoId = item.InfoId,
+                Title = item.Title,
+                Description = item.Description,
+                InformationType = item.InformationType.ToString(),
+                SubmittedAt = item.SubmittedAt,
+                SubmittedByName = item.SubmittedByUser == null ? null : item.SubmittedByUser.Name
+            })
+            .ToListAsync(cancellationToken);
+
         return new ComplaintDto
         {
             ComplaintId = complaint.ComplaintId,
@@ -67,7 +100,9 @@ public class GetComplaintByIdQueryHandler
             UpdatedAt = complaint.UpdatedAt,
             AuthorId = complaint.UserId,
             AuthorName = complaint.IsAnonymous ? null : complaint.User?.Name,
-            AuthorEmail = complaint.IsAnonymous ? null : complaint.User?.Email
+            AuthorEmail = complaint.IsAnonymous ? null : complaint.User?.Email,
+            Evidence = evidence,
+            AdditionalInformation = additionalInformation
         };
     }
 }

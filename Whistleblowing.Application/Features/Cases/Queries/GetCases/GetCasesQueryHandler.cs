@@ -25,22 +25,33 @@ public class GetCasesQueryHandler : IRequestHandler<GetCasesQuery, List<CaseDto>
                 c.CaseId, 
                 c.ComplaintId, 
                 comp.Title AS ComplaintTitle, 
+                comp.Category,
+                comp.IsAnonymous,
                 c.Status, 
                 c.Priority, 
                 c.AssignedInvestigatorId, 
-                u.Name AS InvestigatorName, 
+                COALESCE(assigned.AssignedInvestigatorIds, CONVERT(varchar(max), c.AssignedInvestigatorId)) AS AssignedInvestigatorIds,
+                COALESCE(assigned.InvestigatorNames, u.Name) AS InvestigatorName,
                 c.CreatedAt, 
                 c.UpdatedAt
             FROM Cases c
             INNER JOIN Complaints comp ON c.ComplaintId = comp.ComplaintId
             LEFT JOIN Users u ON c.AssignedInvestigatorId = u.UserId
+            OUTER APPLY (
+                SELECT
+                    STRING_AGG(CONVERT(varchar(max), ci.InvestigatorId), ',') AS AssignedInvestigatorIds,
+                    STRING_AGG(i.Name, ', ') AS InvestigatorNames
+                FROM case_investigators ci
+                INNER JOIN Users i ON ci.InvestigatorId = i.UserId
+                WHERE ci.CaseId = c.CaseId
+            ) assigned
             WHERE 1=1
         ";
 
         // Role-based filter
         if (_currentUser.Role == "INVESTIGATOR")
         {
-            sql += " AND c.AssignedInvestigatorId = @UserId";
+            sql += " AND (c.AssignedInvestigatorId = @UserId OR EXISTS (SELECT 1 FROM case_investigators ci WHERE ci.CaseId = c.CaseId AND ci.InvestigatorId = @UserId))";
         }
 
         // Optional Status filter

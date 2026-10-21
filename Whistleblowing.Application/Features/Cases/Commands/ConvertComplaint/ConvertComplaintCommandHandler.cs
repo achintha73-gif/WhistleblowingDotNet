@@ -49,6 +49,16 @@ public class ConvertComplaintCommandHandler : IRequestHandler<ConvertComplaintCo
         complaint.Status = ComplaintStatus.CONVERTED_TO_CASE;
         complaint.UpdatedAt = DateTime.UtcNow;
 
+        if (!complaint.IsAnonymous && complaint.UserId.HasValue)
+        {
+            _context.Notifications.Add(new Notification
+            {
+                UserId = complaint.UserId.Value,
+                Message = $"Your concern \"{complaint.Title}\" has moved into the investigation stage.",
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
         // Add to Status History
         var statusHistory = new CaseStatusHistory
         {

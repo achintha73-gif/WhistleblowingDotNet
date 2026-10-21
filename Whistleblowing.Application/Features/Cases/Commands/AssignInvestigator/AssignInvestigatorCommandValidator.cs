@@ -5,6 +5,7 @@ public class AssignInvestigatorCommandValidator : AbstractValidator<AssignInvest
     public AssignInvestigatorCommandValidator()
     {
         RuleFor(x => x.CaseId).GreaterThan(0);
-        RuleFor(x => x.InvestigatorId).GreaterThan(0);
+        RuleFor(x => x.InvestigatorIds).NotEmpty();
+        RuleForEach(x => x.InvestigatorIds).GreaterThan(0);
     }
 }

@@ -1,5 +1,6 @@
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
@@ -13,11 +14,17 @@ using Whistleblowing.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Avoid Windows Event Log writes in local development; the app may run without
+// permission to write to that log, which can otherwise break request handling.
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 // Controllers
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// CORS (React එකට API එකට කතා කරන්න)
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
@@ -49,6 +56,10 @@ builder.Services.AddSwaggerGen(options =>
 
 // Infrastructure (DbContext, JwtTokenGenerator, PasswordHasher)
 builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services.AddScoped<IEmailSender, SmtpEmailSender>();
+var dataProtectionPath = Path.Combine(builder.Environment.ContentRootPath, "private-uploads", "data-protection-keys");
+Directory.CreateDirectory(dataProtectionPath);
+builder.Services.AddDataProtection().PersistKeysToFileSystem(new DirectoryInfo(dataProtectionPath));
 
 // MediatR + Pipeline Behaviours
 builder.Services.AddMediatR(cfg =>
@@ -103,8 +114,9 @@ try
 }
 catch (Exception ex)
 {
-    var logger = app.Services.GetRequiredService<ILogger<Program>>();
-    logger.LogError(ex, "Seeding failed");
+    // Keep the API available even when the database is temporarily unavailable.
+    // Console logging also avoids Windows Event Log permission errors masking the original failure.
+    Console.Error.WriteLine($"Database seeding failed: {ex}");
 }
 
 // Middleware

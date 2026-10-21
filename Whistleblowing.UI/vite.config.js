@@ -7,9 +7,9 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'https://localhost:7183',
+        // Use the HTTP profile so local development does not depend on a developer SSL certificate.
+        target: 'http://localhost:5064',
         changeOrigin: true,
-        secure: false,
       }
     }
   }

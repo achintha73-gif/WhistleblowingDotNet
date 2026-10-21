@@ -107,6 +107,21 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.ToTable("cases", (string)null);
                 });
 
+            modelBuilder.Entity("Whistleblowing.Domain.Entities.CaseInvestigator", b =>
+                {
+                    b.Property<int>("CaseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InvestigatorId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CaseId", "InvestigatorId");
+
+                    b.HasIndex("InvestigatorId");
+
+                    b.ToTable("case_investigators", (string)null);
+                });
+
             modelBuilder.Entity("Whistleblowing.Domain.Entities.CaseStatusHistory", b =>
                 {
                     b.Property<int>("HistoryId")
@@ -678,7 +693,28 @@ namespace Whistleblowing.Infrastructure.Migrations
 
                     b.Navigation("InvestigationReport");
 
+                    b.Navigation("InvestigatorAssignments");
+
                     b.Navigation("StatusHistory");
+                });
+
+            modelBuilder.Entity("Whistleblowing.Domain.Entities.CaseInvestigator", b =>
+                {
+                    b.HasOne("Whistleblowing.Domain.Entities.Case", "Case")
+                        .WithMany("InvestigatorAssignments")
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Whistleblowing.Domain.Entities.User", "Investigator")
+                        .WithMany("CaseAssignments")
+                        .HasForeignKey("InvestigatorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+
+                    b.Navigation("Investigator");
                 });
 
             modelBuilder.Entity("Whistleblowing.Domain.Entities.Complaint", b =>
@@ -707,6 +743,8 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.Navigation("AssignedCases");
 
                     b.Navigation("CaseStatusChanges");
+
+                    b.Navigation("CaseAssignments");
 
                     b.Navigation("Complaints");
 
