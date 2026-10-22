@@ -1,126 +1,207 @@
-import { useContext, useEffect, useState } from 'react';
-import { NavLink, useLocation, useNavigate } from 'react-router-dom';
+import { useState, useContext, useEffect } from 'react';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import axios from 'axios';
 
-const paths = {
-  dashboard: 'M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z',
-  plus: 'M12 5v14m-7-7h14',
-  file: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8zM14 2v6h6M8 13h8M8 17h8',
-  bell: 'M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9m-8 12a2 2 0 0 0 4 0',
-  user: 'M20 21a8 8 0 0 0-16 0m8-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-  users: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m16-10a4 4 0 1 0-2-7.5M22 21v-2a4 4 0 0 0-3-3.87M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z',
-  help: 'M9.1 9a3 3 0 1 1 5.8 1c-.8 1-2.9 1.5-2.9 3m0 4h.01M22 12a10 10 0 1 1-20 0 10 10 0 0 1 20 0z',
-  logout: 'M10 17l5-5-5-5m5 5H3m9-9h6a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-6',
-  menu: 'M4 6h16M4 12h16M4 18h16',
-  shield: 'M12 22s8-4 8-11V5l-8-3-8 3v6c0 7 8 11 8 11zm-3-11 2 2 4-4',
-  settings: 'M12 3.5l1.35 1.74 2.18-.28.82 2.04 2.06.76-.28 2.18L20 11.5l-1.87 1.56.28 2.18-2.06.76-.82 2.04-2.18-.28L12 19.5l-1.35-1.74-2.18.28-.82-2.04-2.06-.76.28-2.18L4 11.5l1.87-1.56-.28-2.18 2.06-.76.82-2.04 2.18.28L12 3.5z M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z',
-};
-
-const Icon = ({ name, className = 'h-5 w-5' }) => (
-  <svg aria-hidden="true" className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-    <path d={paths[name]} />
-  </svg>
-);
-
-const Layout = ({ children, title = 'Whistleblowing', wide = false }) => {
+const Layout = ({ children, title }) => {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
   const location = useLocation();
-  const [menuOpen, setMenuOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
-  const role = user?.roleName;
-  const userId = user?.userId;
 
+  // Notification Count එක API එකෙන් ගන්නවා
   useEffect(() => {
-    document.title = `${title} | Whistleblowing`;
-  }, [location.pathname, title]);
-  useEffect(() => {
-    if (!menuOpen) return undefined;
-    const closeOnEscape = event => { if (event.key === 'Escape') setMenuOpen(false); };
-    window.addEventListener('keydown', closeOnEscape);
-    return () => window.removeEventListener('keydown', closeOnEscape);
-  }, [menuOpen]);
-  useEffect(() => {
-    if (!userId || !localStorage.getItem('token') && !sessionStorage.getItem('token')) return undefined;
-    let active = true;
-    const refreshUnread = async () => {
-      const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const fetchUnreadCount = async () => {
+      if (!user) return;
       try {
-        const response = await axios.get('/api/Notifications', { headers: { Authorization: `Bearer ${token}` } });
-        if (active) setUnreadCount((Array.isArray(response.data) ? response.data : []).filter(item => !item.isRead).length);
-      } catch { if (active) setUnreadCount(0); }
+        const res = await axios.get('/api/Notifications', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        const unread = res.data.filter(n => !n.isRead).length;
+        setUnreadCount(unread);
+      } catch (err) {
+        console.error("Notification fetch error", err);
+      }
     };
-    refreshUnread();
-    const interval = window.setInterval(refreshUnread, 30000);
-    return () => { active = false; window.clearInterval(interval); };
-  }, [userId]);
-  const sections = [
-    { title: 'Main', items: [
-      ...(role === 'ADMIN' ? [{ label: 'Dashboard', to: '/admin', icon: 'dashboard' }] : []),
-      ...(role === 'MANAGER' ? [{ label: 'Dashboard', to: '/manager', icon: 'dashboard' }] : []),
-      ...(role === 'INVESTIGATOR' ? [{ label: 'Dashboard', to: '/investigator', icon: 'dashboard' }] : []),
-      ...(role === 'USER' ? [
-        { label: 'Dashboard', to: '/employee', icon: 'dashboard' },
-        { label: 'Submit Concern', to: '/submit-complaint', icon: 'plus' },
-        { label: 'My Concerns', to: '/my-complaints', icon: 'file' },
-      ] : []),
-      ...(['ADMIN', 'MANAGER'].includes(role) ? [{ label: 'Concerns', to: '/manage-complaints', icon: 'file' }] : []),
-      ...(role !== 'USER' ? [{ label: 'Cases', to: '/manage-cases', icon: 'file' }] : []),
-      { label: 'Notifications', to: '/notifications', icon: 'bell' },
-    ] },
-    ...(role === 'MANAGER' ? [{ title: 'Team', items: [
-      { label: 'Team', to: '/manager/team', icon: 'users' },
-    ] }] : []),
-    ...(role === 'ADMIN' ? [{ title: 'People', items: [
-      { label: 'Users', to: '/manage-users', icon: 'user' },
-      { label: 'Departments', to: '/manage-departments', icon: 'file' },
-    ] }] : []),
-    { title: 'System', items: [
-      ...(role === 'ADMIN' ? [{ label: 'Settings', to: '/settings', icon: 'settings' }] : []),
-      ...(role === 'ADMIN' ? [{ label: 'Activity Logs', to: '/activity-logs', icon: 'file' }] : []),
-      { label: 'Profile', to: '/profile', icon: 'user' },
-    ] },
-  ];
-  const closeMenu = () => setMenuOpen(false);
-  const handleLogout = () => { logout(); navigate('/'); };
+    
+    fetchUnreadCount();
+    const interval = setInterval(fetchUnreadCount, 30000); // හැම තත්පර 30කට වරක් Update වෙනවා
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const isActive = (path) => location.pathname === path;
 
   return (
-    <div className="min-h-screen bg-[#f1f1ff] text-slate-800">
-      <a href="#main-content" className="sr-only z-50 rounded-lg bg-white px-4 py-2 text-sm font-semibold text-blue-700 focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:shadow-lg">Skip to main content</a>
-      {menuOpen && <button aria-label="Close navigation" className="fixed inset-0 z-30 bg-slate-950/40 lg:hidden" onClick={closeMenu} />}
+    <div className="min-h-screen bg-gray-100 flex relative">
+      
+      {/* Mobile Overlay */}
+      {isSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
+          onClick={() => setIsSidebarOpen(false)}
+        ></div>
+      )}
 
-      <header className="fixed inset-x-0 top-0 z-30 flex h-[60px] items-center gap-4 border-b border-white/80 bg-white/90 px-4 backdrop-blur sm:px-6">
-        <button onClick={() => setMenuOpen(open => !open)} aria-label={menuOpen ? 'Close navigation' : 'Open navigation'} aria-expanded={menuOpen} aria-controls="primary-navigation" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl text-slate-600 hover:bg-slate-100 lg:hidden"><Icon name="menu" /></button>
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 text-white shadow-md"><Icon name="shield" className="h-5 w-5" /></div>
-          <span className="truncate text-base font-bold tracking-tight text-slate-800 sm:text-lg">Whistleblowing System</span>
+      {/* Sidebar */}
+      <div className={`w-64 bg-white border-r border-gray-200 flex flex-col shadow-sm fixed inset-y-0 left-0 z-50 transform transition-transform duration-300 lg:relative lg:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+        
+        {/* Logo Area */}
+        <div className="p-6 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 text-white shadow-md">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+            </div>
+            <div>
+              <h1 className="text-sm font-bold text-gray-900 leading-tight">Whistleblowing</h1>
+              <p className="text-[10px] text-gray-500 font-medium">Management System</p>
+            </div>
+          </div>
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-gray-500 hover:text-gray-800">
+            <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+          </button>
         </div>
-        <button onClick={() => navigate('/notifications')} aria-label={unreadCount ? `Notifications, ${unreadCount} unread` : 'Notifications'} className="relative grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-600 shadow-sm ring-1 ring-slate-200/70 hover:bg-slate-50"><Icon name="bell" />{unreadCount > 0 && <span className="absolute -right-1 -top-1 grid min-h-4 min-w-4 place-items-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">{unreadCount > 9 ? '9+' : unreadCount}</span>}</button>
-        <div className="hidden max-w-[240px] items-center gap-2 truncate rounded-xl bg-white px-3.5 py-2 text-sm font-medium text-slate-700 shadow-sm ring-1 ring-slate-200/70 sm:flex"><Icon name="user" className="h-4 w-4 shrink-0" /><span className="truncate">{user?.email || user?.name || 'Account'}</span></div>
-        <button onClick={handleLogout} aria-label="Sign out" title="Sign out" className="grid h-10 w-10 place-items-center rounded-xl bg-white text-slate-600 shadow-sm ring-1 ring-rose-100 hover:bg-rose-50 hover:text-rose-600"><Icon name="logout" /></button>
-      </header>
 
-      <aside id="primary-navigation" aria-label="Primary navigation" className={`fixed bottom-0 left-0 top-[60px] z-40 flex w-[min(82vw,254px)] flex-col border-r border-indigo-100 bg-[#f7f8ff] transition-transform duration-200 lg:translate-x-0 ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-        <div className="min-h-0 flex-1 space-y-4 overflow-x-hidden overflow-y-auto overscroll-contain px-3 py-4 sm:space-y-5 sm:py-5">
-          {sections.map(section => <section key={section.title}>
-            <h2 className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.12em] text-slate-500">{section.title}</h2>
-            <nav className="space-y-1" aria-label={section.title}>
-              {section.items.map(item => <NavLink key={item.to} to={item.to} end onClick={closeMenu} className={({ isActive }) => `flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[13px] font-semibold transition ${isActive ? 'bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-lg shadow-blue-500/25' : 'text-slate-600 hover:bg-white/80 hover:text-slate-900'}`}>
-                <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${location.pathname === item.to ? 'bg-white/20' : 'bg-white/70 text-slate-600'}`}><Icon name={item.icon} className="h-4 w-4" /></span><span className="min-w-0 truncate">{item.label}</span>
-              </NavLink>)}
-            </nav>
-          </section>)}
-        </div>
-        <div className="shrink-0 space-y-1 border-t border-indigo-100/80 p-3">
-          <NavLink to="/support" onClick={closeMenu} className={({ isActive }) => `flex items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-semibold ${isActive ? 'bg-white text-blue-700' : 'text-slate-600 hover:bg-white/80'}`}><span className="grid h-8 w-8 place-items-center rounded-lg bg-white/70"><Icon name="help" className="h-4 w-4" /></span>Support</NavLink>
-          <button onClick={handleLogout} className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[13px] font-semibold text-slate-600 hover:bg-white/80 hover:text-rose-600"><span className="grid h-8 w-8 place-items-center rounded-lg bg-white/70"><Icon name="logout" className="h-4 w-4" /></span>Logout</button>
-        </div>
-      </aside>
+        {/* Navigation Links */}
+        <div className="flex-1 overflow-y-auto py-4 px-3 space-y-6">
+          <div className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">Main</div>
+          <div className="space-y-1">
+            <Link to={user?.roleName === 'ADMIN' ? '/admin' : user?.roleName === 'MANAGER' ? '/manager' : user?.roleName === 'INVESTIGATOR' ? '/investigator' : '/employee'} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/admin') || isActive('/manager') || isActive('/investigator') || isActive('/employee') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3.75 3.75h6.5v6.5h-6.5zM13.75 3.75h6.5v6.5h-6.5zM3.75 13.75h6.5v6.5h-6.5zM13.75 13.75h6.5v6.5h-6.5z" /></svg>
+              Dashboard
+            </Link>
+            {user?.roleName !== 'USER' && (
+              <Link to="/manage-cases" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/manage-cases') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
+                Cases
+              </Link>
+            )}
+            {user?.roleName === 'USER' && (
+              <Link to="/my-complaints" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/my-complaints') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
+                My Concerns
+              </Link>
+            )}
+            {user?.roleName === 'ADMIN' && (
+              <>
+                <Link to="/manage-users" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/manage-users') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" /></svg>
+                  Users
+                </Link>
+                <Link to="/manage-departments" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/manage-departments') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                  Departments
+                </Link>
+                <Link to="/activity-logs" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/activity-logs') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Activity Logs
+                </Link>
+              </>
+            )}
+          </div>
 
-      <main id="main-content" tabIndex={-1} className="min-h-screen bg-[radial-gradient(ellipse_at_10%_10%,#dfeaff_0%,transparent_40%),radial-gradient(ellipse_at_90%_15%,#f1d9ff_0%,transparent_38%),linear-gradient(145deg,#eef2ff_0%,#f5eaff_100%)] pb-10 pl-0 pt-[60px] lg:pl-[254px]">
-        <div className={`mx-auto w-full ${wide ? 'max-w-[1600px]' : 'max-w-[1280px]'} px-4 py-6 sm:px-6 sm:py-7 lg:px-8`}>{children}</div>
-      </main>
+          <div className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-wider text-gray-400">System</div>
+          <div className="space-y-1">
+             <Link to="/support" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/support') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" strokeWidth="2"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.6 9a2.4 2.4 0 114.3 1.45c-.9 1.05-1.9 1.3-1.9 2.55M12 16.5h.01"/></svg>
+              Support
+            </Link>
+            <Link to="/profile" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/profile') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+              My Profile
+            </Link>
+          </div>
+        </div>
+
+      </div>
+
+      {/* Main Content Area */}
+      <div className="flex-1 flex flex-col min-h-screen min-w-0">
+        
+        {/* Top Header */}
+        <header className="sticky top-0 z-10 flex items-center justify-between gap-2 border-b border-gray-200 bg-white px-3 py-2.5 shadow-sm sm:gap-4 sm:px-6 sm:py-3">
+          
+          {/* Left: Mobile Menu & Title */}
+          <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+            <button onClick={() => setIsSidebarOpen(true)} aria-label="Open navigation menu" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-gray-600 transition hover:bg-gray-100 hover:text-blue-600 lg:hidden">
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            </button>
+            <h2 className="min-w-0 truncate text-sm font-bold text-gray-800 sm:text-xl">{title}</h2>
+          </div>
+
+          {/* Right: Notifications, Profile, Logout */}
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-4">
+            
+            {/* 🌟 අලුත් Notification Bell (පින්තූරෙට 100%ක්ම සමානයි) */}
+            <Link 
+              to="/notifications" 
+              title="Notifications"
+              className="group relative flex h-9 w-9 items-center justify-center rounded-xl bg-[#f8f7fc] text-[#334155] shadow-sm ring-1 ring-slate-200/60 transition-all hover:-translate-y-0.5 hover:bg-slate-50 hover:text-blue-600 hover:shadow-md sm:h-10 sm:w-10 sm:rounded-2xl"
+            >
+              <svg 
+                className="h-5 w-5 transition-transform duration-200 group-hover:rotate-12" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth="2" 
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" 
+                />
+              </svg>
+              
+              {/* රතු පාට Notification Count එක (Unread > 0 නම් විතරක් පේනවා) */}
+              {unreadCount > 0 && (
+                <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </Link>
+
+            <div className="hidden h-6 w-px bg-gray-200 sm:block"></div>
+
+            {/* Profile Avatar */}
+            <Link to="/profile" aria-label="Open profile" className="flex shrink-0 items-center gap-2.5 rounded-xl p-0.5 transition hover:bg-gray-50 sm:p-1 sm:pr-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 text-sm font-bold text-white shadow-md ring-2 ring-white sm:h-9 sm:w-9">
+                {user?.name ? user.name.charAt(0).toUpperCase() : 'U'}
+              </div>
+              <div className="hidden flex-col items-start sm:flex">
+                <span className="text-sm font-bold text-gray-800 leading-tight">{user?.name}</span>
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-500">{user?.roleName}</span>
+              </div>
+            </Link>
+
+            <div className="hidden h-6 w-px bg-gray-200 sm:block"></div>
+
+            {/* Logout Icon Button */}
+            <button 
+              onClick={handleLogout} 
+              title="Logout"
+              aria-label="Logout"
+              className="group inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-rose-100 bg-rose-50 text-rose-500 shadow-sm transition-all hover:-translate-y-0.5 hover:bg-rose-100 hover:text-rose-600 hover:shadow-md sm:h-10 sm:w-10"
+            >
+              <svg className="h-5 w-5 transition-transform group-hover:translate-x-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </button>
+          </div>
+
+        </header>
+
+        {/* Page Content */}
+        <main className="p-4 sm:p-8 flex-1 overflow-auto">
+          <div className="max-w-7xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

@@ -2,33 +2,27 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #172033;
-  background: #f5f7fb;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  font-optical-sizing: auto;
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
+  background-color: #f8fafc;
 }
 
-* { box-sizing: border-box; }
-html { min-width: 320px; min-height: 100%; scroll-behavior: smooth; }
-body { min-width: 320px; min-height: 100vh; margin: 0; background: #f5f7fb; }
-button, input, select, textarea { font: inherit; }
-button, a { -webkit-tap-highlight-color: transparent; }
-button { cursor: pointer; }
-button:disabled { cursor: not-allowed; }
-a { text-decoration: none; }
-::selection { color: #12378a; background: #dbeafe; }
-:focus-visible { outline: 3px solid rgb(59 130 246 / 55%); outline-offset: 2px; }
-
-input, select, textarea { color: #172033; }
-input::placeholder, textarea::placeholder { color: #94a3b8; opacity: 1; }
-input[type="checkbox"], input[type="radio"] { accent-color: #2563eb; }
-textarea { line-height: 1.6; }
-
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+#root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+/* Mobile Chart Fixes */
+.recharts-responsive-container {
+  min-width: 0 !important;
+}
+@media (max-width: 640px) {
+  .recharts-wrapper {
+    font-size: 10px;
+  }
 }
