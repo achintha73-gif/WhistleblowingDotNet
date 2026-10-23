@@ -1,7 +1,7 @@
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../api';
 
 const Layout = ({ children, title }) => {
   const { user, logout } = useContext(AuthContext);
@@ -10,12 +10,12 @@ const Layout = ({ children, title }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
-  // Notification Count එක API එකෙන් ගන්නවා
+  // Notification Count 
   useEffect(() => {
     const fetchUnreadCount = async () => {
       if (!user) return;
       try {
-        const res = await axios.get('/api/Notifications', {
+        const res = await api.get('/api/Notifications', {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         const unread = res.data.filter(n => !n.isRead).length;
@@ -26,7 +26,7 @@ const Layout = ({ children, title }) => {
     };
     
     fetchUnreadCount();
-    const interval = setInterval(fetchUnreadCount, 30000); // හැම තත්පර 30කට වරක් Update වෙනවා
+    const interval = setInterval(fetchUnreadCount, 30000); // à·„à·à¶¸ à¶­à¶­à·Šà¶´à¶» 30à¶šà¶§ à·€à¶»à¶šà·Š Update à·€à·™à¶±à·€à·
     return () => clearInterval(interval);
   }, [user]);
 
@@ -79,6 +79,12 @@ const Layout = ({ children, title }) => {
               <Link to="/manage-cases" className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/manage-cases') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
                 Cases
+              </Link>
+            )}
+            {user?.roleName === 'MANAGER' && (
+              <Link to="/manager/team" onClick={() => setIsSidebarOpen(false)} className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition ${isActive('/manager/team') ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                <svg aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2a5 5 0 00-10 0v2m0 0H2v-2a3 3 0 015.356-1.857M15 7a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                Team
               </Link>
             )}
             {user?.roleName === 'USER' && (
@@ -137,7 +143,6 @@ const Layout = ({ children, title }) => {
           {/* Right: Notifications, Profile, Logout */}
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-4">
             
-            {/* 🌟 අලුත් Notification Bell (පින්තූරෙට 100%ක්ම සමානයි) */}
             <Link 
               to="/notifications" 
               title="Notifications"
@@ -157,7 +162,7 @@ const Layout = ({ children, title }) => {
                 />
               </svg>
               
-              {/* රතු පාට Notification Count එක (Unread > 0 නම් විතරක් පේනවා) */}
+              {/* Notification Count(Unread) */}
               {unreadCount > 0 && (
                 <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full border-2 border-white bg-red-500 px-1 text-[10px] font-bold text-white shadow-sm">
                   {unreadCount > 99 ? '99+' : unreadCount}

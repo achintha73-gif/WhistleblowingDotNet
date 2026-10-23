@@ -13,15 +13,42 @@ namespace Whistleblowing.Api.Controllers;
 public class AnonymousController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IConfiguration _configuration;
+    private readonly IHttpClientFactory _httpClientFactory;
 
-    public AnonymousController(IMediator mediator)
+    public AnonymousController(IMediator mediator, IConfiguration configuration, IHttpClientFactory httpClientFactory)
     {
         _mediator = mediator;
+        _configuration = configuration;
+        _httpClientFactory = httpClientFactory;
+    }
+
+    [HttpGet("captcha-config")]
+    public IActionResult CaptchaConfig()
+    {
+        var siteKey = _configuration["Recaptcha:SiteKey"];
+        return string.IsNullOrWhiteSpace(siteKey) ? StatusCode(503, new { error = "Verification is not configured." }) : Ok(new { siteKey });
     }
 
     [HttpPost("report")]
     public async Task<IActionResult> Report([FromBody] SubmitAnonymousCommand command)
     {
+        var secret = _configuration["Recaptcha:SecretKey"];
+        if (string.IsNullOrWhiteSpace(secret)) return StatusCode(503, new { error = "Verification is not configured." });
+        if (string.IsNullOrWhiteSpace(command.RecaptchaToken)) return BadRequest(new { error = "Please complete the verification." });
+        try
+        {
+            using var content = new FormUrlEncodedContent(new Dictionary<string, string> { ["secret"] = secret, ["response"] = command.RecaptchaToken });
+            using var response = await _httpClientFactory.CreateClient().PostAsync("https://www.google.com/recaptcha/api/siteverify", content, HttpContext.RequestAborted);
+            if (!response.IsSuccessStatusCode) return StatusCode(503, new { error = "Verification is temporarily unavailable." });
+            using var json = System.Text.Json.JsonDocument.Parse(await response.Content.ReadAsStringAsync(HttpContext.RequestAborted));
+            if (!json.RootElement.TryGetProperty("success", out var success) || success.ValueKind != System.Text.Json.JsonValueKind.True)
+                return BadRequest(new { error = "Verification failed or expired. Please try again." });
+        }
+        catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException or System.Text.Json.JsonException)
+        {
+            return StatusCode(503, new { error = "Verification is temporarily unavailable." });
+        }
         var result = await _mediator.Send(command);
         return CreatedAtAction(nameof(Track), new { code = result.ReferenceCode }, result);
     }

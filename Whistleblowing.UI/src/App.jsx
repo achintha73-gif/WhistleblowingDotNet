@@ -9,6 +9,7 @@ import Register from './pages/Register';
 import AccessDenied from './pages/AccessDenied';
 import AdminDashboard from './pages/AdminDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
+import ManagerTeam from './pages/ManagerTeam';
 import EmployeeDashboard from './pages/EmployeeDashboard';
 import InvestigatorDashboard from './pages/InvestigatorDashboard';
 import SubmitComplaint from './pages/SubmitComplaint';
@@ -73,6 +74,8 @@ function App() {
           {/* Manager Routes */}
           <Route path="/manager" element={<ProtectedRoute allowedRoles={['MANAGER']}><ManagerDashboard /></ProtectedRoute>} />
           
+          <Route path="/manager/team" element={<ProtectedRoute allowedRoles={['MANAGER']}><ManagerTeam /></ProtectedRoute>} />
+
           {/* Employee Routes */}
           <Route path="/employee" element={<ProtectedRoute allowedRoles={['USER']}><EmployeeDashboard /></ProtectedRoute>} />
           <Route path="/submit-complaint" element={<ProtectedRoute allowedRoles={['USER']}><SubmitComplaint /></ProtectedRoute>} />

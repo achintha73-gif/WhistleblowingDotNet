@@ -37,12 +37,24 @@ namespace Whistleblowing.Infrastructure.Migrations
                     Description = table.Column<string>(type: "text", nullable: false),
                     InformationType = table.Column<string>(type: "nvarchar(30)", maxLength: 30, nullable: false),
                     SubmittedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    SubmittedBy = table.Column<int>(type: "int", nullable: false),
+                    SubmittedBy = table.Column<int>(type: "int", nullable: true),
                     ComplaintId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_additional_information", x => x.InfoId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "case_investigators",
+                columns: table => new
+                {
+                    CaseId = table.Column<int>(type: "int", nullable: false),
+                    InvestigatorId = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_case_investigators", x => new { x.CaseId, x.InvestigatorId });
                 });
 
             migrationBuilder.CreateTable(
@@ -293,6 +305,11 @@ namespace Whistleblowing.Infrastructure.Migrations
                 column: "SubmittedBy");
 
             migrationBuilder.CreateIndex(
+                name: "IX_case_investigators_InvestigatorId",
+                table: "case_investigators",
+                column: "InvestigatorId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_case_status_history_CaseId",
                 table: "case_status_history",
                 column: "CaseId");
@@ -443,6 +460,22 @@ namespace Whistleblowing.Infrastructure.Migrations
                 onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_case_investigators_cases_CaseId",
+                table: "case_investigators",
+                column: "CaseId",
+                principalTable: "cases",
+                principalColumn: "CaseId",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_case_investigators_users_InvestigatorId",
+                table: "case_investigators",
+                column: "InvestigatorId",
+                principalTable: "users",
+                principalColumn: "UserId",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_case_status_history_cases_CaseId",
                 table: "case_status_history",
                 column: "CaseId",
@@ -500,6 +533,9 @@ namespace Whistleblowing.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "additional_information");
+
+            migrationBuilder.DropTable(
+                name: "case_investigators");
 
             migrationBuilder.DropTable(
                 name: "case_status_history");

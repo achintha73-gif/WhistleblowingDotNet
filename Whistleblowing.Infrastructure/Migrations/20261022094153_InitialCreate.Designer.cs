@@ -12,7 +12,7 @@ using Whistleblowing.Infrastructure.Persistence;
 namespace Whistleblowing.Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261019080509_InitialCreate")]
+    [Migration("20261022094153_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -48,7 +48,7 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("SubmittedBy")
+                    b.Property<int?>("SubmittedBy")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
@@ -108,6 +108,21 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.HasIndex("Status");
 
                     b.ToTable("cases", (string)null);
+                });
+
+            modelBuilder.Entity("Whistleblowing.Domain.Entities.CaseInvestigator", b =>
+                {
+                    b.Property<int>("CaseId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("InvestigatorId")
+                        .HasColumnType("int");
+
+                    b.HasKey("CaseId", "InvestigatorId");
+
+                    b.HasIndex("InvestigatorId");
+
+                    b.ToTable("case_investigators", (string)null);
                 });
 
             modelBuilder.Entity("Whistleblowing.Domain.Entities.CaseStatusHistory", b =>
@@ -526,8 +541,7 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.HasOne("Whistleblowing.Domain.Entities.User", "SubmittedByUser")
                         .WithMany("AdditionalInfo")
                         .HasForeignKey("SubmittedBy")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Restrict);
 
                     b.Navigation("Complaint");
 
@@ -550,6 +564,25 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.Navigation("AssignedInvestigator");
 
                     b.Navigation("Complaint");
+                });
+
+            modelBuilder.Entity("Whistleblowing.Domain.Entities.CaseInvestigator", b =>
+                {
+                    b.HasOne("Whistleblowing.Domain.Entities.Case", "Case")
+                        .WithMany("InvestigatorAssignments")
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Whistleblowing.Domain.Entities.User", "Investigator")
+                        .WithMany("CaseAssignments")
+                        .HasForeignKey("InvestigatorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+
+                    b.Navigation("Investigator");
                 });
 
             modelBuilder.Entity("Whistleblowing.Domain.Entities.CaseStatusHistory", b =>
@@ -682,6 +715,8 @@ namespace Whistleblowing.Infrastructure.Migrations
 
                     b.Navigation("InvestigationReport");
 
+                    b.Navigation("InvestigatorAssignments");
+
                     b.Navigation("StatusHistory");
                 });
 
@@ -709,6 +744,8 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.Navigation("AdditionalInfo");
 
                     b.Navigation("AssignedCases");
+
+                    b.Navigation("CaseAssignments");
 
                     b.Navigation("CaseStatusChanges");
 

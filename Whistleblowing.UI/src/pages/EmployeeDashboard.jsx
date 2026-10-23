@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../api';
 import Layout from '../components/Layout';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
@@ -13,7 +13,7 @@ const EmployeeDashboard = () => {
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
-        const res = await axios.get('/api/Complaints', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get('/api/Complaints', { headers: { Authorization: `Bearer ${token}` } });
         setComplaints(res.data);
       } catch (err) { console.error(err); } finally { setLoading(false); }
     };

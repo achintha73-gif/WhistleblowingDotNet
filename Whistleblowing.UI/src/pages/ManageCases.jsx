@@ -1,6 +1,6 @@
 import { useCallback, useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../api';
 import Layout from '../components/Layout';
 import { Link } from 'react-router-dom';
 import { normalizeCases } from '../utils/cases';
@@ -43,7 +43,7 @@ const ManageCases = () => {
     setLoading(true);
     setError(false);
     try {
-      const res = await axios.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } });
+      const res = await api.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } });
       setCases(normalizeCases(res.data));
     } catch { setError(true); } finally { setLoading(false); }
   }, [token]);
@@ -65,7 +65,7 @@ const ManageCases = () => {
           </div>
           <div className="flex items-center gap-2">
             <div className="rounded-xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-slate-800 shadow-sm">{cases.length} {isInvestigator ? (cases.length === 1 ? 'assignment' : 'assignments') : (cases.length === 1 ? 'case' : 'cases')}</div>
-            <button type="button" onClick={fetchCases} disabled={loading} className="rounded-xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-white disabled:opacity-60">{loading ? 'Refreshing…' : 'Refresh status'}</button>
+            <button type="button" onClick={fetchCases} disabled={loading} className="rounded-xl border border-white/80 bg-white/70 px-4 py-3 text-sm font-semibold text-blue-700 shadow-sm transition hover:bg-white disabled:opacity-60">{loading ? 'Refreshingâ€¦' : 'Refresh status'}</button>
           </div>
         </div>
 
@@ -79,7 +79,7 @@ const ManageCases = () => {
           })}
         </nav>
 
-        {loading ? <div className="rounded-2xl border border-white/70 bg-white/70 p-10 text-center text-sm text-slate-500 shadow-sm">Loading cases…</div>
+        {loading ? <div className="rounded-2xl border border-white/70 bg-white/70 p-10 text-center text-sm text-slate-500 shadow-sm">Loading casesâ€¦</div>
           : error ? <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">Cases could not be loaded. <button onClick={fetchCases} className="ml-2 font-semibold underline">Try again</button></div>
           : cases.length === 0 ? <div className="rounded-2xl border border-dashed border-indigo-200 bg-white/60 p-10 text-center"><p className="text-sm font-semibold text-slate-800">{isInvestigator ? 'No cases assigned to you yet' : 'No cases yet'}</p><p className="mt-1 text-xs text-slate-500">{isInvestigator ? 'New assignments from your manager will appear here.' : 'Cases created from approved concerns will appear here.'}</p></div>
             : visibleCases.length === 0 ? <div className="rounded-2xl border border-dashed border-indigo-200 bg-white/60 p-10 text-center"><p className="text-sm font-semibold text-slate-800">No {statusOptions.find(option => option.id === statusFilter)?.label.toLowerCase()} cases</p><p className="mt-1 text-xs text-slate-500">Choose another status above to see more cases.</p></div>

@@ -61,8 +61,23 @@ public static class DataSeeder
             await context.SaveChangesAsync(default);
         }
 
-        // 3. Seed users (if empty)
-        if (!await context.Users.AnyAsync())
+        var environment = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
+        var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+
+        // Production requires an explicitly configured administrator; never create demo accounts.
+        if (!environment.IsDevelopment() && !await context.Users.AnyAsync())
+        {
+            var email = configuration["Seed:AdminEmail"]?.Trim();
+            var password = configuration["Seed:AdminPassword"];
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password) || password.Length < 12)
+                throw new InvalidOperationException("Set Seed:AdminEmail and a unique Seed:AdminPassword of at least 12 characters before creating the first administrator.");
+            var role = await context.Roles.FirstAsync(r => r.RoleName == "ADMIN");
+            context.Users.Add(new User { Name = "System Admin", Email = email, Password = passwordHasher.Hash(password), RoleId = role.RoleId, Status = UserStatus.ACTIVE });
+            await context.SaveChangesAsync(default);
+        }
+
+        // Default demo accounts are only created during local development.
+        if (environment.IsDevelopment() && !await context.Users.AnyAsync())
         {
             var adminRole = await context.Roles.FirstAsync(r => r.RoleName == "ADMIN");
             var managerRole = await context.Roles.FirstAsync(r => r.RoleName == "MANAGER");
@@ -125,7 +140,6 @@ public static class DataSeeder
         }
 
         // Keep sample complaint and investigation data out of production databases.
-        var environment = scope.ServiceProvider.GetRequiredService<IWebHostEnvironment>();
         if (environment.IsDevelopment() &&
             !await context.Complaints.AnyAsync(item => item.Title == "[TEST] Procurement concern"))
         {
@@ -170,6 +184,272 @@ public static class DataSeeder
                     CaseId = caseRecord.CaseId,
                     Findings = "DEMO REPORT: The fictional test documents contain inconsistent approval dates. This is sample content only.",
                     Recommendation = "DEMO RECOMMENDATION: Review the fictional approval checklist and record the outcome.",
+                    CreatedAt = now
+                });
+                await context.SaveChangesAsync(default);
+            }
+        }
+
+        if (environment.IsDevelopment())
+        {
+            await SeedDevelopmentSampleDataAsync(context, passwordHasher);
+        }
+    }
+
+    private static async Task SeedDevelopmentSampleDataAsync(
+        IApplicationDbContext context,
+        IPasswordHasher passwordHasher)
+    {
+        var sampleDepartments = new[]
+        {
+            new Department
+            {
+                DepartmentName = "Procurement",
+                Description = "DEMO DATA: Fictional procurement team.",
+                Status = "active"
+            },
+            new Department
+            {
+                DepartmentName = "Facilities",
+                Description = "DEMO DATA: Fictional facilities team.",
+                Status = "active"
+            },
+            new Department
+            {
+                DepartmentName = "Compliance",
+                Description = "DEMO DATA: Fictional compliance team.",
+                Status = "active"
+            }
+        };
+
+        var existingDepartmentNames = await context.Departments
+            .Select(department => department.DepartmentName)
+            .ToListAsync();
+        var knownDepartmentNames = existingDepartmentNames.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingDepartments = sampleDepartments
+            .Where(department => knownDepartmentNames.Add(department.DepartmentName))
+            .ToArray();
+
+        if (missingDepartments.Length > 0)
+        {
+            context.Departments.AddRange(missingDepartments);
+            await context.SaveChangesAsync(default);
+        }
+
+        var sampleDepartmentNames = sampleDepartments
+            .Select(department => department.DepartmentName)
+            .ToArray();
+        var departmentIds = await context.Departments
+            .Where(department => sampleDepartmentNames.Contains(department.DepartmentName))
+            .ToDictionaryAsync(department => department.DepartmentName, department => department.DepartmentId);
+
+        var roleIds = await context.Roles
+            .Where(role => role.RoleName == "USER" || role.RoleName == "MANAGER" || role.RoleName == "INVESTIGATOR")
+            .ToDictionaryAsync(role => role.RoleName, role => role.RoleId);
+
+        var sampleUserDefinitions = new[]
+        {
+            new
+            {
+                Name = "Demo Employee",
+                Email = "demo.employee@wb.local",
+                RoleName = "USER",
+                DepartmentName = "Procurement"
+            },
+            new
+            {
+                Name = "Demo Investigator",
+                Email = "demo.investigator@wb.local",
+                RoleName = "INVESTIGATOR",
+                DepartmentName = "Facilities"
+            },
+            new
+            {
+                Name = "Demo Manager",
+                Email = "demo.manager@wb.local",
+                RoleName = "MANAGER",
+                DepartmentName = "Compliance"
+            }
+        };
+
+        var sampleEmails = sampleUserDefinitions.Select(user => user.Email).ToArray();
+        var existingSampleUsers = await context.Users
+            .Where(user => sampleEmails.Contains(user.Email))
+            .ToListAsync();
+        var knownEmails = existingSampleUsers
+            .Select(user => user.Email)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var missingUserDefinitions = sampleUserDefinitions
+            .Where(user => knownEmails.Add(user.Email))
+            .ToArray();
+
+        if (missingUserDefinitions.Length > 0)
+        {
+            var missingUsers = missingUserDefinitions.Select(user => new User
+            {
+                Name = user.Name,
+                Email = user.Email,
+                Password = passwordHasher.Hash("Demo@12345"),
+                RoleId = roleIds[user.RoleName],
+                DepartmentId = departmentIds[user.DepartmentName],
+                Status = UserStatus.ACTIVE
+            });
+            context.Users.AddRange(missingUsers);
+            await context.SaveChangesAsync(default);
+        }
+
+        var demoUsers = await context.Users
+            .Where(user => sampleEmails.Contains(user.Email))
+            .ToDictionaryAsync(user => user.Email);
+        var investigatorId = demoUsers["demo.investigator@wb.local"].UserId;
+        var employeeId = demoUsers["demo.employee@wb.local"].UserId;
+
+        var sampleComplaints = new[]
+        {
+            new
+            {
+                Title = "[DEMO] Vendor selection concern",
+                Description = "DEMO DATA: A fictional report asks whether a vendor selection followed the sample organization's documented review steps.",
+                Category = "Procurement",
+                Status = ComplaintStatus.CONVERTED_TO_CASE,
+                UserId = (int?)employeeId,
+                IsAnonymous = false,
+                ReferenceCode = (string?)null,
+                CaseStatus = (CaseStatus?)CaseStatus.INVESTIGATING,
+                Priority = CasePriority.HIGH,
+                Findings = (string?)"DEMO REPORT: The fictional review packet is missing one approval note. No real person or organization is involved.",
+                Recommendation = (string?)"DEMO RECOMMENDATION: Confirm the example approval sequence and document any control improvements.",
+                DaysAgo = 5
+            },
+            new
+            {
+                Title = "[DEMO] Facilities safety follow-up",
+                Description = "DEMO DATA: A fictional employee requests a follow-up on a routine facilities safety inspection.",
+                Category = "Workplace Safety",
+                Status = ComplaintStatus.CONVERTED_TO_CASE,
+                UserId = (int?)employeeId,
+                IsAnonymous = false,
+                ReferenceCode = (string?)null,
+                CaseStatus = (CaseStatus?)CaseStatus.PENDING_REVIEW,
+                Priority = CasePriority.MEDIUM,
+                Findings = (string?)"DEMO REPORT: The fictional inspection checklist records that the identified item was addressed.",
+                Recommendation = (string?)"DEMO RECOMMENDATION: Have a reviewer confirm the checklist and close the sample follow-up if complete.",
+                DaysAgo = 3
+            },
+            new
+            {
+                Title = "[DEMO] Policy clarification request",
+                Description = "DEMO DATA: A fictional employee asks for clarification about an internal policy and its approval process.",
+                Category = "Policy",
+                Status = ComplaintStatus.UNDER_REVIEW,
+                UserId = (int?)employeeId,
+                IsAnonymous = false,
+                ReferenceCode = (string?)null,
+                CaseStatus = (CaseStatus?)null,
+                Priority = CasePriority.LOW,
+                Findings = (string?)null,
+                Recommendation = (string?)null,
+                DaysAgo = 2
+            },
+            new
+            {
+                Title = "[DEMO] Anonymous office access concern",
+                Description = "DEMO DATA: A fictional anonymous report asks for a routine review of an office access log.",
+                Category = "Facilities",
+                Status = ComplaintStatus.PENDING,
+                UserId = (int?)null,
+                IsAnonymous = true,
+                ReferenceCode = (string?)"DEMO-ANON-2026-01",
+                CaseStatus = (CaseStatus?)null,
+                Priority = CasePriority.MEDIUM,
+                Findings = (string?)null,
+                Recommendation = (string?)null,
+                DaysAgo = 1
+            },
+            new
+            {
+                Title = "[DEMO] Expense review concern",
+                Description = "DEMO DATA: A fictional report requests a routine check of a sample expense review workflow.",
+                Category = "Compliance",
+                Status = ComplaintStatus.CONVERTED_TO_CASE,
+                UserId = (int?)employeeId,
+                IsAnonymous = false,
+                ReferenceCode = (string?)null,
+                CaseStatus = (CaseStatus?)CaseStatus.OPEN,
+                Priority = CasePriority.MEDIUM,
+                Findings = (string?)null,
+                Recommendation = (string?)null,
+                DaysAgo = 7
+            }
+        };
+
+        var now = DateTime.UtcNow;
+        foreach (var sample in sampleComplaints)
+        {
+            var complaint = await context.Complaints
+                .FirstOrDefaultAsync(item => item.Title == sample.Title);
+
+            if (complaint is null)
+            {
+                complaint = new Complaint
+                {
+                    Title = sample.Title,
+                    Description = sample.Description,
+                    Category = sample.Category,
+                    Status = sample.Status,
+                    UserId = sample.UserId,
+                    IsAnonymous = sample.IsAnonymous,
+                    ReferenceCode = sample.ReferenceCode,
+                    CreatedAt = now.AddDays(-sample.DaysAgo),
+                    UpdatedAt = now.AddDays(-sample.DaysAgo)
+                };
+                context.Complaints.Add(complaint);
+                await context.SaveChangesAsync(default);
+            }
+
+            if (sample.CaseStatus is null)
+            {
+                continue;
+            }
+
+            var caseRecord = await context.Cases
+                .FirstOrDefaultAsync(item => item.ComplaintId == complaint.ComplaintId);
+            if (caseRecord is null)
+            {
+                caseRecord = new Case
+                {
+                    ComplaintId = complaint.ComplaintId,
+                    Status = sample.CaseStatus.Value,
+                    Priority = sample.Priority,
+                    AssignedInvestigatorId = investigatorId,
+                    CreatedAt = now.AddDays(-sample.DaysAgo + 1),
+                    UpdatedAt = now
+                };
+                context.Cases.Add(caseRecord);
+                await context.SaveChangesAsync(default);
+            }
+
+            if (!await context.CaseInvestigators.AnyAsync(assignment =>
+                    assignment.CaseId == caseRecord.CaseId &&
+                    assignment.InvestigatorId == investigatorId))
+            {
+                context.CaseInvestigators.Add(new CaseInvestigator
+                {
+                    CaseId = caseRecord.CaseId,
+                    InvestigatorId = investigatorId
+                });
+                await context.SaveChangesAsync(default);
+            }
+
+            if (sample.Findings is not null &&
+                sample.Recommendation is not null &&
+                !await context.InvestigationReports.AnyAsync(report => report.CaseId == caseRecord.CaseId))
+            {
+                context.InvestigationReports.Add(new InvestigationReport
+                {
+                    CaseId = caseRecord.CaseId,
+                    Findings = sample.Findings,
+                    Recommendation = sample.Recommendation,
                     CreatedAt = now
                 });
                 await context.SaveChangesAsync(default);

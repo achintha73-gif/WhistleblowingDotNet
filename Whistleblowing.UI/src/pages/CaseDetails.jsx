@@ -1,9 +1,10 @@
 import { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { AuthContext } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import EvidenceUploader from '../components/EvidenceUploader';
+import EvidenceList from '../components/EvidenceList';
 import { normalizeCase } from '../utils/cases';
 
 const CaseDetails = () => {
@@ -25,7 +26,7 @@ const CaseDetails = () => {
   useEffect(() => {
     const fetchCase = async () => {
       try {
-        const res = await axios.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } });
         const currentCase = res.data.map(normalizeCase).find(c => c.caseId === parseInt(id));
         if (currentCase) {
           setCaseData(currentCase);
@@ -35,7 +36,7 @@ const CaseDetails = () => {
           setSelectedInvestigatorIds(assignedIds);
           setSelectedStatus(currentCase.status);
           try {
-            const complaintResponse = await axios.get(`/api/Complaints/${currentCase.complaintId}`, { headers: { Authorization: `Bearer ${token}` } });
+            const complaintResponse = await api.get(`/api/Complaints/${currentCase.complaintId}`, { headers: { Authorization: `Bearer ${token}` } });
             setComplaint(complaintResponse.data);
           } catch { setComplaint(null); }
         }
@@ -45,7 +46,7 @@ const CaseDetails = () => {
   }, [id, token]);
 
   const reloadCase = async () => {
-    const response = await axios.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } });
+    const response = await api.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } });
     const updated = response.data.map(normalizeCase).find(item => item.caseId === Number(id));
     if (updated) {
       setCaseData(updated);
@@ -59,7 +60,7 @@ const CaseDetails = () => {
 
   const updateStatus = async event => {
     event.preventDefault(); setActionBusy(true); setMessage('');
-    try { await axios.put(`/api/Cases/${id}/status?newStatus=${encodeURIComponent(selectedStatus)}`, {}, { headers: { Authorization: `Bearer ${token}` } }); await reloadCase(); setMessage('Case status updated. An employee notification is sent for identified reports.'); }
+    try { await api.put(`/api/Cases/${id}/status?newStatus=${encodeURIComponent(selectedStatus)}`, {}, { headers: { Authorization: `Bearer ${token}` } }); await reloadCase(); setMessage('Case status updated. An employee notification is sent for identified reports.'); }
     catch (e) { setMessage(e.response?.data?.error || 'Could not update the case status. Please try again.'); }
     finally { setActionBusy(false); }
   };
@@ -69,7 +70,7 @@ const CaseDetails = () => {
     setReportSubmitting(true);
     setMessage('');
     try {
-      await axios.post(`/api/Cases/${id}/report`, { caseId: parseInt(id), ...report }, { headers: { Authorization: `Bearer ${token}` } });
+      await api.post(`/api/Cases/${id}/report`, { caseId: parseInt(id), ...report }, { headers: { Authorization: `Bearer ${token}` } });
       setMessage('Investigation report submitted successfully!');
       setReport({ findings: '', recommendation: '' });
     } catch (error) {
@@ -81,7 +82,7 @@ const CaseDetails = () => {
 
   const downloadEvidence = async evidence => {
     try {
-      const response = await axios.get(`/api/Evidence/${evidence.evidenceId}/download`, { headers: { Authorization: `Bearer ${token}` }, responseType: 'blob' });
+      const response = await api.get(`/api/Evidence/${evidence.evidenceId}/download`, { headers: { Authorization: `Bearer ${token}` }, responseType: 'blob' });
       const fileUrl = URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = fileUrl;
@@ -97,7 +98,7 @@ const CaseDetails = () => {
 
   const reloadComplaint = async () => {
     if (!caseData?.complaintId) return;
-    const response = await axios.get(`/api/Complaints/${caseData.complaintId}`, { headers: { Authorization: `Bearer ${token}` } });
+    const response = await api.get(`/api/Complaints/${caseData.complaintId}`, { headers: { Authorization: `Bearer ${token}` } });
     setComplaint(response.data);
   };
 
@@ -147,7 +148,7 @@ const CaseDetails = () => {
             </div>
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Last Updated</div>
-              <div className="mt-1 text-sm text-gray-900">{caseData.updatedAt && new Date(caseData.updatedAt).getTime() > 0 && new Date(caseData.updatedAt).getTime() !== new Date(caseData.createdAt).getTime() ? new Date(caseData.updatedAt).toLocaleString() : '—'}</div>
+              <div className="mt-1 text-sm text-gray-900">{caseData.updatedAt && new Date(caseData.updatedAt).getTime() > 0 && new Date(caseData.updatedAt).getTime() !== new Date(caseData.createdAt).getTime() ? new Date(caseData.updatedAt).toLocaleString() : 'â€”'}</div>
             </div>
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Assigned Investigator</div>
@@ -168,7 +169,7 @@ const CaseDetails = () => {
 
         {complaint && <section className="rounded-2xl border border-white/80 bg-white/70 p-5 shadow-lg shadow-slate-400/10 backdrop-blur sm:p-6"><h2 className="text-sm font-semibold text-slate-700">Complaint Details</h2><div className="mt-3"><span className="rounded-md border border-slate-100 bg-white/80 px-2 py-1 text-xs font-medium text-slate-700">{complaint.category || caseData.category || 'Uncategorized'}</span></div><p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">{complaint.description || 'No description provided.'}</p></section>}
 
-        <section className="space-y-4 rounded-2xl border border-white/80 bg-white/70 p-5 shadow-lg shadow-slate-400/10 backdrop-blur sm:p-6"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold text-slate-700">Evidence ({complaint?.evidence?.length || 0})</h2><span className="text-xs text-slate-500">Upload available</span></div>{complaint?.evidence?.length ? <ul className="divide-y divide-slate-100 rounded-xl border border-slate-100 bg-white/80">{complaint.evidence.map(item => <li key={item.evidenceId} className="flex flex-wrap items-center justify-between gap-3 px-3 py-3"><div className="min-w-0"><p className="truncate text-sm font-medium text-blue-700">{item.fileName}</p><p className="mt-0.5 text-xs text-slate-500">{new Date(item.uploadedAt).toLocaleString()}{item.uploaderName ? ` · Uploaded by ${item.uploaderName}` : ''}</p></div><button type="button" onClick={() => downloadEvidence(item)} disabled={!item.hasFile} className="text-xs font-semibold text-blue-600 hover:text-blue-800 disabled:text-slate-400">{item.hasFile ? 'Download' : 'File unavailable'}</button></li>)}</ul> : <p className="rounded-xl border border-dashed border-slate-200 px-4 py-5 text-center text-xs text-slate-500">No evidence files attached.</p>}<EvidenceUploader uploadUrl={`/api/Evidence/case/${id}/upload`} token={token} onUploaded={reloadComplaint} /></section>
+        <section className="space-y-4 rounded-2xl border border-white/80 bg-white/70 p-5 shadow-lg shadow-slate-400/10 backdrop-blur sm:p-6"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold text-slate-700">Evidence ({complaint?.evidence?.length || 0})</h2><span className="text-xs text-slate-500">Upload available</span></div><EvidenceList items={complaint?.evidence || []} token={token} /><EvidenceUploader uploadUrl={`/api/Evidence/case/${id}/upload`} token={token} onUploaded={reloadComplaint} /></section>
 
         {/* Submit Report */}
         {user?.roleName === 'INVESTIGATOR' && <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg backdrop-blur-xl">
@@ -182,7 +183,7 @@ const CaseDetails = () => {
               <label htmlFor="report-recommendation" className="block text-xs font-medium text-gray-600 mb-1">Recommendation</label>
               <textarea id="report-recommendation" placeholder="What action should be taken?" className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" value={report.recommendation} onChange={e => setReport(current => ({ ...current, recommendation: e.target.value }))} required />
             </div>
-            <button type="submit" disabled={reportSubmitting} className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md hover:from-emerald-600 hover:to-emerald-700 transition disabled:cursor-wait disabled:opacity-60">{reportSubmitting ? 'Submitting…' : 'Submit report'}</button>
+            <button type="submit" disabled={reportSubmitting} className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md hover:from-emerald-600 hover:to-emerald-700 transition disabled:cursor-wait disabled:opacity-60">{reportSubmitting ? 'Submittingâ€¦' : 'Submit report'}</button>
           </form>
         </div>}
       </div>

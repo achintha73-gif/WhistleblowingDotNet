@@ -168,7 +168,7 @@ const Login = () => {
                 </div>
 
                 <button type="submit" disabled={isSubmitting} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:from-blue-700 hover:to-violet-700 disabled:cursor-wait disabled:opacity-70">
-                  {isSubmitting ? 'Signing in…' : 'Sign in'}
+                  {isSubmitting ? 'Signing in...' : 'Sign in'}
                   {!isSubmitting && <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14m-6-6 6 6-6 6" /></svg>}
                 </button>
               </form>

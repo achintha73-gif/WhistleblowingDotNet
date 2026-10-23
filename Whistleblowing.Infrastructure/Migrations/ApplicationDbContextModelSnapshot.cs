@@ -563,6 +563,25 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.Navigation("Complaint");
                 });
 
+            modelBuilder.Entity("Whistleblowing.Domain.Entities.CaseInvestigator", b =>
+                {
+                    b.HasOne("Whistleblowing.Domain.Entities.Case", "Case")
+                        .WithMany("InvestigatorAssignments")
+                        .HasForeignKey("CaseId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Whistleblowing.Domain.Entities.User", "Investigator")
+                        .WithMany("CaseAssignments")
+                        .HasForeignKey("InvestigatorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Case");
+
+                    b.Navigation("Investigator");
+                });
+
             modelBuilder.Entity("Whistleblowing.Domain.Entities.CaseStatusHistory", b =>
                 {
                     b.HasOne("Whistleblowing.Domain.Entities.Case", "Case")
@@ -698,25 +717,6 @@ namespace Whistleblowing.Infrastructure.Migrations
                     b.Navigation("StatusHistory");
                 });
 
-            modelBuilder.Entity("Whistleblowing.Domain.Entities.CaseInvestigator", b =>
-                {
-                    b.HasOne("Whistleblowing.Domain.Entities.Case", "Case")
-                        .WithMany("InvestigatorAssignments")
-                        .HasForeignKey("CaseId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Whistleblowing.Domain.Entities.User", "Investigator")
-                        .WithMany("CaseAssignments")
-                        .HasForeignKey("InvestigatorId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Case");
-
-                    b.Navigation("Investigator");
-                });
-
             modelBuilder.Entity("Whistleblowing.Domain.Entities.Complaint", b =>
                 {
                     b.Navigation("AdditionalInfo");
@@ -742,9 +742,9 @@ namespace Whistleblowing.Infrastructure.Migrations
 
                     b.Navigation("AssignedCases");
 
-                    b.Navigation("CaseStatusChanges");
-
                     b.Navigation("CaseAssignments");
+
+                    b.Navigation("CaseStatusChanges");
 
                     b.Navigation("Complaints");
 

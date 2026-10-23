@@ -37,7 +37,7 @@ const InvestigatorMultiSelect = ({ investigators, selectedIds, onChange, disable
       })}
       {!investigators.length && <p className="px-3 py-3 text-sm text-slate-500">Add active investigator accounts before assigning this case.</p>}
     </div>}
-    {selectedUsers.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{selectedUsers.map(person => <span key={person.userId} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-800"><span className="truncate">{person.name}</span><button type="button" aria-label={`Remove ${person.name}`} disabled={disabled} onClick={() => toggle(person.userId)} className="rounded-full text-blue-500 hover:text-rose-600 disabled:opacity-50">×</button></span>)}</div>}
+    {selectedUsers.length > 0 && <div className="mt-2 flex flex-wrap gap-1.5">{selectedUsers.map(person => <span key={person.userId} className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-blue-100 bg-blue-50 px-2.5 py-1 text-[11px] font-medium text-blue-800"><span className="truncate">{person.name}</span><button type="button" aria-label={`Remove ${person.name}`} disabled={disabled} onClick={() => toggle(person.userId)} className="rounded-full text-blue-500 hover:text-rose-600 disabled:opacity-50">Ã—</button></span>)}</div>}
   </div>;
 };
 

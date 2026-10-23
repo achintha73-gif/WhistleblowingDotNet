@@ -1,9 +1,10 @@
 import { useState, useEffect, useContext } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 import { AuthContext } from '../context/AuthContext';
 import Layout from '../components/Layout';
 import EvidenceUploader from '../components/EvidenceUploader';
+import EvidenceList from '../components/EvidenceList';
 import InvestigatorMultiSelect from '../components/InvestigatorMultiSelect';
 import { normalizeCases } from '../utils/cases';
 
@@ -29,11 +30,11 @@ const ComplaintDetails = () => {
     let active = true;
     const fetchComplaint = async () => {
       try {
-        const res = await axios.get(`/api/Complaints/${id}`, requestConfig);
+        const res = await api.get(`/api/Complaints/${id}`, requestConfig);
         if (active) setComplaint(res.data);
         if (active && staffCanReview) {
           const [caseResult, investigatorResult] = await Promise.allSettled([
-            axios.get('/api/Cases', requestConfig), axios.get('/api/Cases/investigators', requestConfig),
+            api.get('/api/Cases', requestConfig), api.get('/api/Cases/investigators', requestConfig),
           ]);
           if (!active) return;
           if (caseResult.status === 'fulfilled') {
@@ -59,7 +60,7 @@ const ComplaintDetails = () => {
   const updateConcernStatus = async status => {
     setActionBusy(true); setActionError(false); setActionMessage('');
     try {
-      await axios.put(`/api/Complaints/${id}/status?status=${encodeURIComponent(status)}`, {}, requestConfig);
+      await api.put(`/api/Complaints/${id}/status?status=${encodeURIComponent(status)}`, {}, requestConfig);
       setComplaint(current => ({ ...current, status }));
       setActionMessage(`Concern marked ${status.replace(/_/g, ' ').toLowerCase()}. The employee has been notified when applicable.`);
     } catch (error) {
@@ -74,7 +75,7 @@ const ComplaintDetails = () => {
     if (!caseId) { setActionError(true); setActionMessage('Create the investigation case before assigning investigators.'); return; }
     setActionBusy(true); setActionError(false); setActionMessage('');
     try {
-      await axios.post(`/api/Cases/${caseId}/assignments`, { investigatorIds: selectedInvestigatorIds.map(Number) }, requestConfig);
+      await api.post(`/api/Cases/${caseId}/assignments`, { investigatorIds: selectedInvestigatorIds.map(Number) }, requestConfig);
       const assignedNames = investigators.filter(item => selectedInvestigatorIds.includes(String(item.userId))).map(item => item.name).join(', ');
       setActionMessage(`Case #${caseId} is assigned to ${assignedNames || 'the selected investigators'}. Notifications have been sent.`);
     } catch (error) {
@@ -84,14 +85,14 @@ const ComplaintDetails = () => {
   };
 
   const reloadComplaint = async () => {
-    const response = await axios.get(`/api/Complaints/${id}`, requestConfig);
+    const response = await api.get(`/api/Complaints/${id}`, requestConfig);
     setComplaint(response.data);
   };
 
   const downloadEvidence = async evidence => {
     setEvidenceError('');
     try {
-      const response = await axios.get(`/api/Evidence/${evidence.evidenceId}/download`, { ...requestConfig, responseType: 'blob' });
+      const response = await api.get(`/api/Evidence/${evidence.evidenceId}/download`, { ...requestConfig, responseType: 'blob' });
       const fileUrl = URL.createObjectURL(response.data);
       const link = document.createElement('a');
       link.href = fileUrl;
@@ -134,7 +135,7 @@ const ComplaintDetails = () => {
           </div>
           {caseId && complaint.status !== 'REJECTED' && <form onSubmit={assignInvestigators} className="grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <label className="text-xs font-semibold text-slate-600">Assign investigators<InvestigatorMultiSelect investigators={investigators} selectedIds={selectedInvestigatorIds} onChange={setSelectedInvestigatorIds} disabled={actionBusy} /></label>
-            <button type="submit" disabled={actionBusy || !investigators.length || !selectedInvestigatorIds.length} className="min-h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-500/20 transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">{actionBusy ? 'Assigning…' : 'Assign investigators'}</button>
+            <button type="submit" disabled={actionBusy || !investigators.length || !selectedInvestigatorIds.length} className="min-h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-500/20 transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">{actionBusy ? 'Assigningâ€¦' : 'Assign investigators'}</button>
           </form>}
           {actionMessage && <p role={actionError ? 'alert' : 'status'} className={`rounded-xl px-3.5 py-2.5 text-xs ${actionError ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{actionMessage}</p>}
         </section>}
@@ -178,9 +179,7 @@ const ComplaintDetails = () => {
         </div>
         <section className="overflow-hidden rounded-2xl border border-white/80 bg-white/80 p-4 shadow-lg shadow-slate-400/10 backdrop-blur sm:p-5" aria-labelledby="attached-evidence-heading">
           <div className="flex items-center justify-between gap-3"><h2 id="attached-evidence-heading" className="text-sm font-semibold text-slate-800">Attached Evidence ({complaint.evidence?.length || 0})</h2><span className="text-[10px] text-slate-500">Supporting files for this concern</span></div>
-          {evidenceError && <p role="alert" className="mt-3 rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-xs text-rose-700">{evidenceError}</p>}
-          {complaint.evidence?.length ? <ul className="mt-3 divide-y divide-slate-100 rounded-xl border border-slate-100 bg-white/80">{complaint.evidence.map(item => <li key={item.evidenceId} className="flex flex-wrap items-center justify-between gap-3 px-3 py-3"><div className="min-w-0"><p className="truncate text-xs font-medium text-slate-800">{item.fileName}</p><p className="mt-0.5 text-[10px] text-slate-500">{item.description || item.uploaderName || 'Evidence'} · {new Date(item.uploadedAt).toLocaleString()}</p></div><button type="button" onClick={() => downloadEvidence(item)} disabled={!item.hasFile} className="shrink-0 rounded-lg px-2.5 py-1.5 text-[10px] font-semibold text-blue-600 hover:bg-blue-50 disabled:text-slate-400">{item.hasFile ? 'Download' : 'File unavailable'}</button></li>)}</ul>
-            : <div className="mt-3 rounded-xl border border-dashed border-slate-200 bg-white/50 px-4 py-6 text-center text-xs text-slate-500">No evidence files attached.</div>}
+          <EvidenceList items={complaint.evidence || []} token={token} />
         </section>
         <EvidenceUploader uploadUrl={`/api/Evidence/complaint/${id}/upload`} token={token} onUploaded={reloadComplaint} initialFiles={location.state?.remainingEvidence || []} initialDescription={location.state?.evidenceNote || ''} />
         <section className="overflow-hidden rounded-2xl border border-white/80 bg-white/80 p-4 shadow-lg shadow-slate-400/10 backdrop-blur sm:p-5" aria-labelledby="additional-information-heading">

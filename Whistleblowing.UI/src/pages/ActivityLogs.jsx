@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../api';
 import Layout from '../components/Layout';
 import { formatColomboDateTime } from '../utils/dateTime';
 
@@ -13,8 +13,8 @@ const ActivityLogs = () => {
   useEffect(() => {
     const fetchLogs = async () => {
       try {
-        // මේ Endpoint එක තාම Backend එකේ නෑ. ඒත් Error එකක් එන්නේ නැතුව හසුරුවගන්නම්
-        const res = await axios.get('/api/Admin/logs', { headers: { Authorization: `Bearer ${token}` } });
+        // à¶¸à·š Endpoint à¶‘à¶š à¶­à·à¶¸ Backend à¶‘à¶šà·š à¶±à·‘. à¶’à¶­à·Š Error à¶‘à¶šà¶šà·Š à¶‘à¶±à·Šà¶±à·š à¶±à·à¶­à·”à·€ à·„à·ƒà·”à¶»à·”à·€à¶œà¶±à·Šà¶±à¶¸à·Š
+        const res = await api.get('/api/Admin/logs', { headers: { Authorization: `Bearer ${token}` } });
         setLogs(res.data);
       } catch {
         setError(true);
@@ -60,7 +60,7 @@ const ActivityLogs = () => {
                       <td className="whitespace-nowrap px-5 py-4 text-gray-600">{formatColomboDateTime(log.createdAt)}</td>
                       <td className="px-5 py-4 font-medium text-gray-900">{log.eventType}</td>
                       <td className="px-5 py-4 text-gray-700">{log.description}</td>
-                      <td className="px-5 py-4 text-gray-600">{log.entityType || '—'}</td>
+                      <td className="px-5 py-4 text-gray-600">{log.entityType || 'â€”'}</td>
                       <td className="px-5 py-4 text-gray-600">{log.actorName || 'System'}</td>
                     </tr>
                   ))}

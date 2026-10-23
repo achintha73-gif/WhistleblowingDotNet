@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../api';
 import Layout from '../components/Layout';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
@@ -33,8 +33,8 @@ const AdminDashboard = () => {
     const fetchData = async () => {
       try {
         const [statsRes, complaintsRes] = await Promise.all([
-          axios.get('/api/Admin/stats', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('/api/Complaints', { headers: { Authorization: `Bearer ${token}` } })
+          api.get('/api/Admin/stats', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('/api/Complaints', { headers: { Authorization: `Bearer ${token}` } })
         ]);
         setStats(statsRes.data);
         

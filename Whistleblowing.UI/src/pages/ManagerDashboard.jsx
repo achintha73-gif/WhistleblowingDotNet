@@ -1,6 +1,7 @@
+import { Link } from 'react-router-dom';
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../api';
 import Layout from '../components/Layout';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -31,8 +32,8 @@ const ManagerDashboard = () => {
     const fetchData = async () => {
       try {
         const [compRes, caseRes] = await Promise.all([
-          axios.get('/api/Complaints', { headers: { Authorization: `Bearer ${token}` } }),
-          axios.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } })
+          api.get('/api/Complaints', { headers: { Authorization: `Bearer ${token}` } }),
+          api.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } })
         ]);
 
         const complaints = compRes.data;
@@ -62,9 +63,9 @@ const ManagerDashboard = () => {
             <h1 className="text-xl font-bold text-gray-900 sm:text-2xl">Welcome back, {user?.name} 👋</h1>
             <p className="mt-1 text-sm text-gray-600">Review incoming concerns and keep investigations moving.</p>
           </div>
-          <button className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg transition hover:from-blue-700 hover:to-indigo-700 sm:w-auto">
+          <Link to="/manager/team" className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg transition hover:from-blue-700 hover:to-indigo-700 sm:w-auto">
             Manage Team
-          </button>
+          </Link>
         </div>
 
         {/* Stats Cards */}

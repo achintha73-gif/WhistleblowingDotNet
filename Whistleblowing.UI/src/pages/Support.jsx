@@ -24,7 +24,7 @@ const Support = () => {
               <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M16 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2m4-10a4 4 0 110-8 4 4 0 010 8zm12 10v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
             </div>
             <h2 className="mt-4 font-semibold text-slate-900">Account and access</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">For sign-in, account, or role access issues, contact your organization’s system administrator.</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">For sign-in, account, or role access issues, contact your organizationâ€™s system administrator.</p>
             <Link to="/profile" className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-blue-700 hover:text-blue-900">Open my profile &rarr;</Link>
           </article>
           <article className="rounded-2xl border border-white/70 bg-white/75 p-6 shadow-lg backdrop-blur-xl">
@@ -58,8 +58,8 @@ const Support = () => {
               <h2 className="font-semibold text-slate-900">Contact support</h2>
               <p className="mt-1 text-sm text-slate-600">Choose a contact option to call or email the support team.</p>
               <div className="mt-4 flex flex-wrap gap-3">
-                <a href="tel:+94112345678" className="inline-flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"><span aria-hidden="true">☎</span> Call +94 11 234 5678</a>
-                <a href="mailto:support@wb.local" className="inline-flex items-center gap-2 rounded-xl bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"><span aria-hidden="true">✉</span> Email support@wb.local</a>
+                <a href="tel:+94112345678" className="inline-flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition hover:bg-blue-100"><span aria-hidden="true">â˜Ž</span> Call +94 11 234 5678</a>
+                <a href="mailto:support@wb.local" className="inline-flex items-center gap-2 rounded-xl bg-violet-50 px-4 py-2.5 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"><span aria-hidden="true">âœ‰</span> Email support@wb.local</a>
               </div>
             </div>
           </div>

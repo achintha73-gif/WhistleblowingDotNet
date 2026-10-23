@@ -1,5 +1,5 @@
 import { useCallback, useContext, useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 import Layout from '../components/Layout';
 import { AuthContext } from '../context/AuthContext';
 import { formatColomboDate } from '../utils/dateTime';
@@ -23,7 +23,7 @@ const ManagerTeam = () => {
     setLoading(true);
     setError(false);
     try {
-      const response = await axios.get('/api/Manager/team', { headers: { Authorization: `Bearer ${token}` } });
+      const response = await api.get('/api/Manager/team', { headers: { Authorization: `Bearer ${token}` } });
       setTeam({ departmentName: response.data?.departmentName || null, users: Array.isArray(response.data?.users) ? response.data.users : [] });
     } catch { setError(true); } finally { setLoading(false); }
   }, [token]);
@@ -50,7 +50,7 @@ const ManagerTeam = () => {
 
       {error ? <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-700">Team members could not be loaded.<button onClick={loadTeam} className="ml-2 font-semibold underline">Try again</button></div>
         : <div className="overflow-hidden rounded-2xl border border-white/80 bg-white/70 shadow-[0_10px_20px_rgba(30,41,59,.12)] backdrop-blur">
-          {loading ? <div className="p-12 text-center text-sm text-slate-500">Loading team…</div>
+          {loading ? <div className="p-12 text-center text-sm text-slate-500">Loading teamâ€¦</div>
             : team.users.length === 0 ? <div className="p-12 text-center"><p className="text-sm font-semibold text-slate-800">No department members found</p><p className="mt-1 text-sm text-slate-500">Ask an administrator to assign your account to a department.</p></div>
               : <div className="overflow-x-auto">
                 <table className="w-full min-w-[760px] border-collapse text-left">
@@ -67,7 +67,7 @@ const ManagerTeam = () => {
                           <span className="min-w-0"><span className="block truncate text-sm font-semibold text-slate-900">{user.name || 'Unnamed user'}</span><span className="block truncate text-xs text-slate-500">{user.email}</span></span>
                         </div></td>
                         <td className="px-5 py-3.5"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${roleColors[role] || 'border-slate-200 bg-slate-100 text-slate-700'}`}>{role === 'USER' ? 'Employee' : role.charAt(0) + role.slice(1).toLowerCase()}</span></td>
-                        <td className="px-5 py-3.5 text-sm text-slate-700">{user.departmentName || team.departmentName || '—'}</td>
+                        <td className="px-5 py-3.5 text-sm text-slate-700">{user.departmentName || team.departmentName || 'â€”'}</td>
                         <td className="px-5 py-3.5"><span className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-medium ${active ? 'border-emerald-200 bg-emerald-100 text-emerald-700' : 'border-slate-200 bg-slate-100 text-slate-600'}`}>{active ? 'Active' : (user.status || 'Unknown').toLowerCase()}</span></td>
                         <td className="whitespace-nowrap px-5 py-3.5 text-sm text-slate-500">{dateLabel(user.createdAt)}</td>
                       </tr>;

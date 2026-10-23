@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api';
 
 const normalizeCode = value => value.trim().toUpperCase();
 
@@ -18,7 +18,7 @@ const AnonymousTrack = () => {
 
     const trackInitialCode = async () => {
       try {
-        const res = await axios.get(`/api/anonymous/track/${encodeURIComponent(normalizeCode(initialCode))}`, { signal: controller.signal });
+        const res = await api.get(`/api/anonymous/track/${encodeURIComponent(normalizeCode(initialCode))}`, { signal: controller.signal });
         navigate('/anonymous/view', { state: { complaint: res.data }, replace: true });
       } catch {
         if (!controller.signal.aborted) setError('We could not find that reference code. Check it and try again.');
@@ -40,7 +40,7 @@ const AnonymousTrack = () => {
     setLoading(true);
     setError('');
     try {
-      const res = await axios.get(`/api/anonymous/track/${encodeURIComponent(referenceCode)}`);
+      const res = await api.get(`/api/anonymous/track/${encodeURIComponent(referenceCode)}`);
       navigate('/anonymous/view', { state: { complaint: res.data } });
     } catch {
       setError('We could not find that reference code. Check it and try again.');
@@ -75,8 +75,8 @@ const AnonymousTrack = () => {
               <p className="mt-2 text-xs leading-5 text-slate-500">Your reference code is the only way to access an anonymous report.</p>
             </div>
             <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-blue-600/20 transition hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/25 disabled:cursor-wait disabled:opacity-60">
-              {loading ? 'Searching…' : 'View report'}
-              {!loading && <span aria-hidden="true">→</span>}
+              {loading ? 'Searchingâ€¦' : 'View report'}
+              {!loading && <span aria-hidden="true">â†’</span>}
             </button>
             <p className="text-center text-xs text-slate-500">Need to submit a new concern? <Link to="/anonymous/submit" className="font-semibold text-blue-700 hover:text-blue-900">Start a report</Link></p>
           </form>

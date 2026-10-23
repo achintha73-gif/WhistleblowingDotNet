@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import axios from 'axios';
+import api from '../api';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024;
 const MAX_TOTAL_SIZE = 25 * 1024 * 1024;
@@ -50,7 +50,7 @@ const EvidenceUploader = ({ uploadUrl, token, maxFiles = 5, onUploaded, initialF
         body.append('File', file);
         if (description.trim()) body.append('Description', description.trim());
         const headers = token ? { Authorization: `Bearer ${token}` } : {};
-        await axios.post(uploadUrl, body, { headers });
+        await api.post(uploadUrl, body, { headers });
         setFiles(current => current.filter(queuedFile => queuedFile !== file));
       }
       setDescription('');
@@ -67,10 +67,10 @@ const EvidenceUploader = ({ uploadUrl, token, maxFiles = 5, onUploaded, initialF
   return (
     <section className="rounded-2xl border border-blue-200 bg-white/80 p-4 shadow-sm sm:p-5" aria-labelledby="evidence-upload-title">
       <form onSubmit={uploadFiles}>
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><h2 id="evidence-upload-title" className="text-xs font-semibold text-slate-800">Attach Evidence <span className="font-normal text-slate-500">(optional)</span></h2><span className="text-[10px] text-slate-500">Max 10 MB each · 25 MB total</span></div>
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><h2 id="evidence-upload-title" className="text-xs font-semibold text-slate-800">Attach Evidence <span className="font-normal text-slate-500">(optional)</span></h2><span className="text-[10px] text-slate-500">Max 10 MB each Â· 25 MB total</span></div>
         <label htmlFor="evidence-upload-input" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); addFiles(event.dataTransfer.files); }} className="mt-3 flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-blue-300 bg-white px-4 py-4 text-center transition hover:border-blue-500 hover:bg-blue-50/40">
           <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5h14v-5"/></svg></span>
-          <span className="text-xs font-semibold text-slate-700">Drag and drop files here</span><span className="mt-1 text-[10px] text-slate-500">or click to browse · PDF, images, TXT · up to {maxFiles} files</span>
+          <span className="text-xs font-semibold text-slate-700">Drag and drop files here</span><span className="mt-1 text-[10px] text-slate-500">or click to browse Â· PDF, images, TXT Â· up to {maxFiles} files</span>
         </label>
         <input ref={inputRef} id="evidence-upload-input" type="file" accept="image/jpeg,image/png,image/gif,image/webp,.pdf,.txt,text/plain" multiple className="sr-only" onChange={event => { addFiles(event.target.files); event.target.value = ''; }} />
         {files.length > 0 && <ul className="mt-3 space-y-2">{files.map((file, index) => <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"><span className="min-w-0 truncate font-medium text-slate-700">{file.name}<span className="ml-2 text-[10px] font-normal text-slate-400">{(file.size / (1024 * 1024)).toFixed(2)} MB</span></span><button type="button" onClick={() => setFiles(current => current.filter((_, fileIndex) => fileIndex !== index))} aria-label={`Remove ${file.name}`} className="shrink-0 rounded px-2 py-1 text-slate-500 hover:bg-red-50 hover:text-red-700">Remove</button></li>)}</ul>}

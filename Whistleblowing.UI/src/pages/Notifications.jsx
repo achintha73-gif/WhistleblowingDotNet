@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../api';
 import Layout from '../components/Layout';
 import { formatColomboDateTime } from '../utils/dateTime';
 
@@ -15,7 +15,7 @@ const Notifications = () => {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const res = await axios.get('/api/Notifications', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get('/api/Notifications', { headers: { Authorization: `Bearer ${token}` } });
         setNotifications(res.data);
       } catch { setError(true); } finally { setLoading(false); }
     };
@@ -26,7 +26,7 @@ const Notifications = () => {
     setActionError('');
     setReadingIds(current => [...current, id]);
     try {
-      await axios.put(`/api/Notifications/${id}/read`, {}, { headers: { Authorization: `Bearer ${token}` } });
+      await api.put(`/api/Notifications/${id}/read`, {}, { headers: { Authorization: `Bearer ${token}` } });
       setNotifications(prev => prev.map(n => n.notificationId === id ? { ...n, isRead: true } : n));
     } catch (error) {
       setActionError(error.response?.data?.error || 'Could not mark this notification as read. Please try again.');
@@ -85,7 +85,7 @@ const Notifications = () => {
 
                 {!n.isRead && (
                   <button onClick={() => markAsRead(n.notificationId)} disabled={readingIds.includes(n.notificationId)} className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-md transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-wait disabled:opacity-60">
-                    {readingIds.includes(n.notificationId) ? 'Saving…' : 'Mark read'}
+                    {readingIds.includes(n.notificationId) ? 'Savingâ€¦' : 'Mark read'}
                   </button>
                 )}
               </li>

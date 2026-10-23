@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../api';
 import Layout from '../components/Layout';
 import { Link } from 'react-router-dom';
 import { formatColomboDate } from '../utils/dateTime';
@@ -15,7 +15,7 @@ const MyComplaints = () => {
   useEffect(() => {
     const fetchComplaints = async () => {
       try {
-        const res = await axios.get('/api/Complaints', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get('/api/Complaints', { headers: { Authorization: `Bearer ${token}` } });
         setComplaints(res.data);
       } catch { setError(true); } finally { setLoading(false); }
     };

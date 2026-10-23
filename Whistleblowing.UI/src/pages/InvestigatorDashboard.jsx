@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import axios from 'axios';
+import api from '../api';
 import Layout from '../components/Layout';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
@@ -13,7 +13,7 @@ const InvestigatorDashboard = () => {
   useEffect(() => {
     const fetchCases = async () => {
       try {
-        const res = await axios.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } });
+        const res = await api.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } });
         setCases(res.data);
       } catch (err) { console.error(err); } finally { setLoading(false); }
     };

@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using System.Text;
@@ -14,14 +15,14 @@ using Whistleblowing.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Avoid Windows Event Log writes in local development; the app may run without
-// permission to write to that log, which can otherwise break request handling.
+// Avoid Windows Event Log writes in local development
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
 // Controllers
 builder.Services.AddControllers();
+builder.Services.AddHttpClient();
 builder.Services.AddEndpointsApiExplorer();
 
 // CORS
@@ -29,9 +30,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        policy.WithOrigins(
+            "http://localhost:5173",
+            "https://whistleblowing-dot-net.vercel.app/"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod();
     });
 });
 
@@ -74,6 +78,9 @@ builder.Services.AddMediatR(cfg =>
 // JWT Configuration
 var jwtSecret = builder.Configuration["Jwt:Secret"]
     ?? throw new InvalidOperationException("JWT Secret missing in config.");
+if (!builder.Environment.IsDevelopment() &&
+    (jwtSecret.Length < 32 || jwtSecret == "REPLACE_THIS_WITH_A_STRONG_SECRET_KEY_AT_LEAST_32_CHARS_LONG_2026"))
+    throw new InvalidOperationException("Configure a unique Jwt:Secret of at least 32 characters for production.");
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "WhistleblowingSystem";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "WhistleblowingSystemUsers";
 
@@ -107,6 +114,22 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 
 var app = builder.Build();
 
+// 🌟 AUTO MIGRATE DATABASE (මේක තමයි අලුතෙන් දාන්නේ)
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<Whistleblowing.Infrastructure.Persistence.ApplicationDbContext>();
+        await context.Database.MigrateAsync(); // Tables ටික හදනවා
+        Console.WriteLine("✅ Database Migrated Successfully!");
+    }
+    catch (Exception ex)
+    {
+        Console.Error.WriteLine($"❌ Database Migration Failed: {ex.Message}");
+    }
+}
+
 // Seed database
 try
 {
@@ -114,8 +137,6 @@ try
 }
 catch (Exception ex)
 {
-    // Keep the API available even when the database is temporarily unavailable.
-    // Console logging also avoids Windows Event Log permission errors masking the original failure.
     Console.Error.WriteLine($"Database seeding failed: {ex}");
 }
 
@@ -132,19 +153,16 @@ if (!Directory.Exists(wwwrootPath))
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 app.UseHttpsRedirection();
-
 
 app.UseCors("AllowReactApp");
 
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapFallbackToFile("index.html");
 
 app.Run();
