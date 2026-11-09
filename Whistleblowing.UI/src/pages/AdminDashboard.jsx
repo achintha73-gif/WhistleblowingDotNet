@@ -9,24 +9,19 @@ const AdminDashboard = () => {
   const { token, user } = useContext(AuthContext);
   const [stats, setStats] = useState({ totalComplaints: 0, totalCases: 0, totalUsers: 0, totalEvidenceFiles: 0 });
   const [recentComplaints, setRecentComplaints] = useState([]);
+  const [allComplaints, setAllComplaints] = useState([]);
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Dummy data for chart 
-  const chartData = [
-    { name: 'Jan', complaints: 4 },
-    { name: 'Feb', complaints: 7 },
-    { name: 'Mar', complaints: 5 },
-    { name: 'Apr', complaints: 12 },
-    { name: 'May', complaints: 9 },
-    { name: 'Jun', complaints: 15 },
-    { name: 'Jul', complaints: 18 },
-  ];
-
+  const chartData = Array.from({ length: 7 }, (_, i) => {
+    const now = new Date(); const month = new Date(now.getFullYear(), now.getMonth() - 6 + i, 1);
+    return { name: month.toLocaleDateString(undefined, { month: 'short' }), complaints: allComplaints.filter(c => { const date = new Date(c.createdAt); return date.getMonth() === month.getMonth() && date.getFullYear() === month.getFullYear(); }).length };
+  });
   const pieData = [
-    { name: 'Pending', value: 5, color: '#f59e0b' },
-    { name: 'Under Review', value: 3, color: '#3b82f6' },
-    { name: 'Converted', value: 7, color: '#8b5cf6' },
-    { name: 'Closed', value: 2, color: '#10b981' },
+    { name: 'Pending', value: allComplaints.filter(c => c.status === 'PENDING').length, color: '#f59e0b' },
+    { name: 'Under Review', value: allComplaints.filter(c => c.status === 'UNDER_REVIEW').length, color: '#3b82f6' },
+    { name: 'Converted', value: allComplaints.filter(c => c.status === 'CONVERTED_TO_CASE').length, color: '#8b5cf6' },
+    { name: 'Other', value: allComplaints.filter(c => !['PENDING', 'UNDER_REVIEW', 'CONVERTED_TO_CASE'].includes(c.status)).length, color: '#10b981' },
   ];
 
   useEffect(() => {
@@ -38,9 +33,10 @@ const AdminDashboard = () => {
         ]);
         setStats(statsRes.data);
         
+        setAllComplaints(complaintsRes.data);
         setRecentComplaints(complaintsRes.data.slice(0, 5));
       } catch (err) {
-        console.error("Dashboard Error:", err);
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
@@ -53,6 +49,7 @@ const AdminDashboard = () => {
   return (
     <Layout title="Admin Dashboard">
       <div className="min-w-0 space-y-4 sm:space-y-6">
+        {loadError && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">Dashboard data could not be loaded. Please refresh and try again.</div>}
         
         {/* Header */}
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
@@ -120,7 +117,7 @@ const AdminDashboard = () => {
 
           {/* Pie Chart */}
           <div className="min-w-0 rounded-2xl border border-white/60 bg-white/60 p-4 shadow-lg backdrop-blur-xl sm:p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">Case Distribution</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">Concern Distribution</h2>
             <div className="flex h-52 w-full min-w-0 justify-center sm:h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -151,7 +148,7 @@ const AdminDashboard = () => {
         <div className="min-w-0 rounded-2xl border border-white/60 bg-white/60 p-4 shadow-lg backdrop-blur-xl sm:p-6">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h2 className="text-base font-semibold text-gray-900 sm:text-lg">Recent Complaints</h2>
-            <Link to="/manage-cases" className="shrink-0 text-xs font-medium text-blue-600 hover:text-blue-800 sm:text-sm">View All</Link>
+            <Link to="/my-complaints" className="shrink-0 text-xs font-medium text-blue-600 hover:text-blue-800 sm:text-sm">View All</Link>
           </div>
           <div className="space-y-3 sm:hidden">
             {recentComplaints.length === 0 ? (

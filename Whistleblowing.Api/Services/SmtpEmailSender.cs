@@ -9,7 +9,13 @@ public sealed class SmtpEmailSender(IConfiguration configuration) : IEmailSender
         !string.IsNullOrWhiteSpace(configuration["Email:SmtpHost"]) &&
         !string.IsNullOrWhiteSpace(configuration["Email:From"]);
 
-    public async Task SendPasswordResetAsync(string email, string resetUrl, CancellationToken cancellationToken)
+    public Task SendPasswordResetAsync(string email, string resetCode, CancellationToken cancellationToken) =>
+        SendAsync(email, "Reset your Whistleblowing System password", $"We received a request to reset your password. Enter this code on the password reset page within 15 minutes:\n\n{resetCode}\n\nIf you did not request this, you can ignore this email.", cancellationToken);
+
+    public Task SendCaseStatusAsync(string email, CancellationToken cancellationToken) =>
+        SendAsync(email, "Your concern has an update", "There is an update to a concern you submitted. Please sign in to the whistleblowing system to view it.", cancellationToken);
+
+    private async Task SendAsync(string email, string subject, string body, CancellationToken cancellationToken)
     {
         var host = configuration["Email:SmtpHost"];
         var from = configuration["Email:From"];
@@ -18,8 +24,8 @@ public sealed class SmtpEmailSender(IConfiguration configuration) : IEmailSender
 
         using var message = new MailMessage(from, email)
         {
-            Subject = "Reset your Whistleblowing System password",
-            Body = $"We received a request to reset your password. Use this secure link within 30 minutes:\n\n{resetUrl}\n\nIf you did not request this, you can ignore this email.",
+            Subject = subject,
+            Body = body,
             IsBodyHtml = false
         };
         using var client = new SmtpClient(host, int.TryParse(configuration["Email:Port"], out var port) ? port : 587)

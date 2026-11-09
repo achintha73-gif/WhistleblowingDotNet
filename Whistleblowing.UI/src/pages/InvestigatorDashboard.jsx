@@ -2,6 +2,7 @@ import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
 import api from '../api';
 import Layout from '../components/Layout';
+import { normalizeCases } from '../utils/cases';
 import { Link } from 'react-router-dom';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 
@@ -9,18 +10,22 @@ const InvestigatorDashboard = () => {
   const { token, user } = useContext(AuthContext);
   const [cases, setCases] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     const fetchCases = async () => {
       try {
         const res = await api.get('/api/Cases', { headers: { Authorization: `Bearer ${token}` } });
-        setCases(res.data);
-      } catch (err) { console.error(err); } finally { setLoading(false); }
+        setCases(normalizeCases(res.data));
+        setError(false);
+      } catch { setError(true); } finally { setLoading(false); }
     };
     fetchCases();
+    window.addEventListener('focus', fetchCases);
+    return () => window.removeEventListener('focus', fetchCases);
   }, [token]);
 
-  const active = cases.length;
+  const active = cases.filter(c => c.status !== 'CLOSED' && c.status !== 'ARCHIVED').length;
   const open = cases.filter(c => c.status === 'OPEN').length;
   const investigating = cases.filter(c => c.status === 'INVESTIGATING').length;
   const pendingReview = cases.filter(c => c.status === 'PENDING_REVIEW').length;
@@ -54,6 +59,8 @@ const InvestigatorDashboard = () => {
             View My Cases
           </Link>
         </div>
+
+        {error && <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">Could not load assigned cases. Please refresh and try again.</div>}
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
@@ -127,6 +134,12 @@ const InvestigatorDashboard = () => {
             </div>
           </div>
         </div>
+
+        <section className="rounded-2xl border border-white/70 bg-white/75 p-4 shadow-lg sm:p-6" aria-labelledby="assigned-cases-heading">
+          <div className="flex items-center justify-between gap-3"><h2 id="assigned-cases-heading" className="text-base font-semibold text-slate-900">Assigned Cases</h2><Link to="/manage-cases" className="text-sm font-semibold text-blue-700 hover:underline">View all</Link></div>
+          {cases.length === 0 ? <p className="mt-4 text-sm text-slate-500">{error ? 'Assigned cases could not be loaded.' : 'No cases assigned to you yet.'}</p> :
+            <div className="mt-4 space-y-3">{cases.map(item => <Link key={item.caseId} to={`/case/${item.caseId}`} className="block rounded-xl border border-slate-200 bg-white p-4 transition hover:border-blue-300 hover:bg-blue-50/40"><div className="flex flex-wrap items-start justify-between gap-3"><div><h3 className="text-sm font-semibold text-slate-900">{item.complaintTitle || `Case #${item.caseId}`}</h3><p className="mt-1 text-xs text-slate-500">Case #{item.caseId} · {item.category || 'General'}</p></div><span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-semibold text-blue-700">{String(item.status || 'Unknown').replace(/_/g, ' ')}</span></div></Link>)}</div>}
+        </section>
 
       </div>
     </Layout>

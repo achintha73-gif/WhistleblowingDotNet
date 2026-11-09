@@ -44,7 +44,8 @@ public class DeleteComplaintCommandHandler
         }
 
         // 3. Check if complaint has a case (block deletion)
-        if (complaint.Status == ComplaintStatus.CONVERTED_TO_CASE)
+        if (complaint.Status == ComplaintStatus.CONVERTED_TO_CASE ||
+            await _context.Cases.AnyAsync(c => c.ComplaintId == complaint.ComplaintId, cancellationToken))
         {
             throw new InvalidOperationException(
                 "Cannot delete a complaint that has been converted to a case."
@@ -94,7 +95,10 @@ public class DeleteComplaintCommandHandler
         }
 
         // 5. Delete (hard delete)
-        // Cascade: evidence + additional_information (via FK config)
+        // Preserve attached records and explain why deletion is unavailable.
+        if (await _context.Evidence.AnyAsync(e => e.ComplaintId == complaint.ComplaintId, cancellationToken) ||
+            await _context.AdditionalInformations.AnyAsync(i => i.ComplaintId == complaint.ComplaintId, cancellationToken))
+            throw new InvalidOperationException("This concern has attached evidence or additional information and cannot be deleted. Contact the team for help.");
         _context.Complaints.Remove(complaint);
         await _context.SaveChangesAsync(cancellationToken);
 

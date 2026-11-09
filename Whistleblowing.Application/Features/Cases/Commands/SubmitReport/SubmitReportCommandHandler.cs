@@ -20,6 +20,7 @@ public class SubmitReportCommandHandler : IRequestHandler<SubmitReportCommand, i
     public async Task<int> Handle(SubmitReportCommand request, CancellationToken cancellationToken)
     {
         var caseEntity = await _context.Cases
+            .Include(caseRecord => caseRecord.Complaint)
             .Include(caseRecord => caseRecord.InvestigatorAssignments)
             .FirstOrDefaultAsync(caseRecord => caseRecord.CaseId == request.CaseId, cancellationToken);
         if (caseEntity is null) return 0;
@@ -36,6 +37,13 @@ public class SubmitReportCommandHandler : IRequestHandler<SubmitReportCommand, i
             Recommendation = request.Recommendation,
             CreatedAt = DateTime.UtcNow
         };
+
+        var managerIds = await _context.Users.Where(u => u.Role.RoleName == "MANAGER" && u.Status == UserStatus.ACTIVE)
+            .Select(u => u.UserId).ToListAsync(cancellationToken);
+        foreach (var managerId in managerIds)
+            _context.Notifications.Add(new Notification { UserId = managerId, Message = $"An investigation report was submitted for Case #{caseEntity.CaseId}.", CreatedAt = DateTime.UtcNow });
+        if (!caseEntity.Complaint.IsAnonymous && caseEntity.Complaint.UserId.HasValue)
+            _context.Notifications.Add(new Notification { UserId = caseEntity.Complaint.UserId.Value, Message = $"There is an investigation update for your concern (Case #{caseEntity.CaseId}).", CreatedAt = DateTime.UtcNow });
 
         _context.InvestigationReports.Add(report);
         await _context.SaveChangesAsync(cancellationToken);

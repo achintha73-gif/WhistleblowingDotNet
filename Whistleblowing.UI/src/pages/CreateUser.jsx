@@ -90,7 +90,7 @@ const CreateUser = () => {
             <button type="button" onClick={addInvestigatorRow} className="rounded-xl border border-dashed border-blue-300 px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50">+ Add another investigator</button>
             <div className="flex justify-end gap-3 border-t border-white/60 pt-5">
               <Link to="/manage-users" className="rounded-xl border border-white/60 bg-white/60 px-5 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-white">Cancel</Link>
-              <button type="submit" disabled={loading} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg disabled:opacity-50">{loading ? 'Adding investigatorsâ€¦' : `Add ${investigators.length} investigators`}</button>
+              <button type="submit" disabled={loading} className="rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg disabled:opacity-50">{loading ? 'Adding investigators…' : `Add ${investigators.length} investigators`}</button>
             </div>
           </form> :
           

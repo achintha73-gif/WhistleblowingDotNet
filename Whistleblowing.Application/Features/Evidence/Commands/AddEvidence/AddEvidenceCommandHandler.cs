@@ -66,6 +66,11 @@ public class AddEvidenceCommandHandler
                 throw new InvalidOperationException("The total evidence size cannot exceed 25 MB.");
         }
 
+        if (!anonymousCodeMatches && _currentUser.RoleName == "INVESTIGATOR" &&
+            !await _context.Cases.AnyAsync(c => c.ComplaintId == complaint.ComplaintId &&
+                (c.AssignedInvestigatorId == _currentUser.UserId || c.InvestigatorAssignments.Any(a => a.InvestigatorId == _currentUser.UserId)), cancellationToken))
+            throw new UnauthorizedAccessException("You can only add evidence to cases assigned to you.");
+
         var isStaff =
             _currentUser.RoleName == "MANAGER" ||
             _currentUser.RoleName == "INVESTIGATOR" ||

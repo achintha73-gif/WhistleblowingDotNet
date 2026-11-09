@@ -16,12 +16,33 @@ const CaseDetails = () => {
   const [caseData, setCaseData] = useState(null);
   const [complaint, setComplaint] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [caseEvidence, setCaseEvidence] = useState([]);
+  const [reports, setReports] = useState([]);
+  const [caseFilesError, setCaseFilesError] = useState('');
   const [report, setReport] = useState({ findings: '', recommendation: '' });
   const [message, setMessage] = useState('');
   const [selectedInvestigatorIds, setSelectedInvestigatorIds] = useState([]);
   const [selectedStatus, setSelectedStatus] = useState('');
   const [actionBusy, setActionBusy] = useState(false);
   const [reportSubmitting, setReportSubmitting] = useState(false);
+
+  const loadCaseFiles = async () => {
+    try {
+      const headers = { Authorization: `Bearer ${token}` };
+      const [evidenceResult, reportsResult] = await Promise.all([
+        api.get(`/api/Cases/${id}/evidence`, { headers }),
+        api.get(`/api/Cases/${id}/reports`, { headers }),
+      ]);
+      setCaseEvidence(evidenceResult.data); setReports(reportsResult.data); setCaseFilesError('');
+    } catch { setCaseFilesError('Could not load case evidence or reports. Please refresh and try again.'); }
+  };
+
+  const downloadReport = item => {
+    const text = `Investigation report #${item.reportId}\nCase #${id}\nCreated: ${new Date(item.createdAt).toLocaleString()}\n\nFindings\n${item.findings}\n\nRecommendation\n${item.recommendation}\n`;
+    const url = URL.createObjectURL(new Blob([text], { type: 'text/plain;charset=utf-8' }));
+    const link = document.createElement('a'); link.href = url; link.download = `case-${id}-report-${item.reportId}.txt`;
+    document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   useEffect(() => {
     const fetchCase = async () => {
@@ -43,6 +64,7 @@ const CaseDetails = () => {
       } catch (err) { console.error(err); } finally { setLoading(false); }
     };
     fetchCase();
+    loadCaseFiles();
   }, [id, token]);
 
   const reloadCase = async () => {
@@ -60,7 +82,7 @@ const CaseDetails = () => {
 
   const updateStatus = async event => {
     event.preventDefault(); setActionBusy(true); setMessage('');
-    try { await api.put(`/api/Cases/${id}/status?newStatus=${encodeURIComponent(selectedStatus)}`, {}, { headers: { Authorization: `Bearer ${token}` } }); await reloadCase(); setMessage('Case status updated. An employee notification is sent for identified reports.'); }
+    try { const response = await api.put(`/api/Cases/${id}/status?newStatus=${encodeURIComponent(selectedStatus)}`, {}, { headers: { Authorization: `Bearer ${token}` } }); await reloadCase(); setMessage(response.data.emailStatus === 'unavailable' ? 'Case status updated, but the email could not be sent. The in-app notification is available.' : 'Case status updated.'); }
     catch (e) { setMessage(e.response?.data?.error || 'Could not update the case status. Please try again.'); }
     finally { setActionBusy(false); }
   };
@@ -70,9 +92,10 @@ const CaseDetails = () => {
     setReportSubmitting(true);
     setMessage('');
     try {
-      await api.post(`/api/Cases/${id}/report`, { caseId: parseInt(id), ...report }, { headers: { Authorization: `Bearer ${token}` } });
-      setMessage('Investigation report submitted successfully!');
+      const response = await api.post(`/api/Cases/${id}/report`, { caseId: parseInt(id), ...report }, { headers: { Authorization: `Bearer ${token}` } });
+      setMessage(response.data.emailStatus === 'unavailable' ? 'Report submitted, but one or more update emails could not be sent. In-app notifications are available.' : 'Investigation report submitted successfully!');
       setReport({ findings: '', recommendation: '' });
+      await loadCaseFiles();
     } catch (error) {
       setMessage(error.response?.data?.error || 'Could not submit the report. Please try again.');
     } finally {
@@ -148,7 +171,7 @@ const CaseDetails = () => {
             </div>
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Last Updated</div>
-              <div className="mt-1 text-sm text-gray-900">{caseData.updatedAt && new Date(caseData.updatedAt).getTime() > 0 && new Date(caseData.updatedAt).getTime() !== new Date(caseData.createdAt).getTime() ? new Date(caseData.updatedAt).toLocaleString() : 'â€”'}</div>
+              <div className="mt-1 text-sm text-gray-900">{caseData.updatedAt && new Date(caseData.updatedAt).getTime() > 0 && new Date(caseData.updatedAt).getTime() !== new Date(caseData.createdAt).getTime() ? new Date(caseData.updatedAt).toLocaleString() : '—'}</div>
             </div>
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">Assigned Investigator</div>
@@ -169,7 +192,9 @@ const CaseDetails = () => {
 
         {complaint && <section className="rounded-2xl border border-white/80 bg-white/70 p-5 shadow-lg shadow-slate-400/10 backdrop-blur sm:p-6"><h2 className="text-sm font-semibold text-slate-700">Complaint Details</h2><div className="mt-3"><span className="rounded-md border border-slate-100 bg-white/80 px-2 py-1 text-xs font-medium text-slate-700">{complaint.category || caseData.category || 'Uncategorized'}</span></div><p className="mt-4 whitespace-pre-wrap text-sm leading-6 text-slate-700">{complaint.description || 'No description provided.'}</p></section>}
 
-        <section className="space-y-4 rounded-2xl border border-white/80 bg-white/70 p-5 shadow-lg shadow-slate-400/10 backdrop-blur sm:p-6"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold text-slate-700">Evidence ({complaint?.evidence?.length || 0})</h2><span className="text-xs text-slate-500">Upload available</span></div><EvidenceList items={complaint?.evidence || []} token={token} /><EvidenceUploader uploadUrl={`/api/Evidence/case/${id}/upload`} token={token} onUploaded={reloadComplaint} /></section>
+        {caseFilesError && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{caseFilesError}</div>}
+        <section className="space-y-4 rounded-2xl border border-white/80 bg-white/70 p-5 shadow-lg shadow-slate-400/10 backdrop-blur sm:p-6"><div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-sm font-semibold text-slate-700">Evidence ({caseEvidence.length})</h2><span className="text-xs text-slate-500">Upload available</span></div><EvidenceList items={caseEvidence} token={token} /><EvidenceUploader uploadUrl={`/api/Evidence/case/${id}/upload`} token={token} onUploaded={loadCaseFiles} /></section>
+        <section className="space-y-4 rounded-2xl border border-white/80 bg-white/70 p-5 shadow-lg sm:p-6"><h2 className="text-sm font-semibold text-slate-700">Investigation Reports ({reports.length})</h2>{reports.length ? reports.map(item => <article key={item.reportId} className="rounded-xl border border-slate-200 bg-white p-4"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-semibold text-slate-800">Report #{item.reportId}</h3><span className="text-xs text-slate-500">{new Date(item.createdAt).toLocaleString()}</span></div><h4 className="mt-4 text-xs font-semibold text-slate-600">Findings</h4><p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{item.findings}</p><h4 className="mt-4 text-xs font-semibold text-slate-600">Recommendation</h4><p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{item.recommendation}</p><button type="button" onClick={() => downloadReport(item)} className="mt-4 rounded-lg border border-blue-200 px-3 py-2 text-xs font-semibold text-blue-700 hover:bg-blue-50">Download report (.txt)</button></article>) : <p className="text-sm text-slate-500">No investigation reports submitted yet.</p>}</section>
 
         {/* Submit Report */}
         {user?.roleName === 'INVESTIGATOR' && <div className="rounded-2xl border border-white/60 bg-white/70 p-6 shadow-lg backdrop-blur-xl">
@@ -183,7 +208,7 @@ const CaseDetails = () => {
               <label htmlFor="report-recommendation" className="block text-xs font-medium text-gray-600 mb-1">Recommendation</label>
               <textarea id="report-recommendation" placeholder="What action should be taken?" className="w-full border border-gray-200 p-3 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none" value={report.recommendation} onChange={e => setReport(current => ({ ...current, recommendation: e.target.value }))} required />
             </div>
-            <button type="submit" disabled={reportSubmitting} className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md hover:from-emerald-600 hover:to-emerald-700 transition disabled:cursor-wait disabled:opacity-60">{reportSubmitting ? 'Submittingâ€¦' : 'Submit report'}</button>
+            <button type="submit" disabled={reportSubmitting} className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-md hover:from-emerald-600 hover:to-emerald-700 transition disabled:cursor-wait disabled:opacity-60">{reportSubmitting ? 'Submitting…' : 'Submit report'}</button>
           </form>
         </div>}
       </div>

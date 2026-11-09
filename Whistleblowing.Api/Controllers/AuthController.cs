@@ -132,7 +132,7 @@ public class AuthController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordRequest request, CancellationToken cancellationToken)
     {
-        const string responseMessage = "If an account exists for that email, a password reset link will be sent shortly.";
+        const string responseMessage = "If an account exists for that email, a password reset code will be sent shortly.";
         if (!_emailSender.IsConfigured)
         {
             _logger.LogError("Password reset email delivery is unavailable because SMTP host/from settings are missing.");
@@ -148,23 +148,21 @@ public class AuthController : ControllerBase
 
         var activeTokens = await _context.PasswordResetTokens.Where(item => item.UserId == user.UserId && item.UsedAt == null).ToListAsync(cancellationToken);
 
-        var rawToken = WebEncoders.Base64UrlEncode(RandomNumberGenerator.GetBytes(32));
+        var rawToken = Convert.ToHexString(RandomNumberGenerator.GetBytes(8));
         var tokenHash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(rawToken)));
         var resetToken = new Whistleblowing.Domain.Entities.PasswordResetToken
         {
             UserId = user.UserId,
             TokenHash = tokenHash,
-            ExpiresAt = DateTime.UtcNow.AddMinutes(30),
+            ExpiresAt = DateTime.UtcNow.AddMinutes(15),
             CreatedAt = DateTime.UtcNow
         };
         _context.PasswordResetTokens.Add(resetToken);
         await _context.SaveChangesAsync(cancellationToken);
 
-        var frontendUrl = _configuration["Email:FrontendBaseUrl"] ?? "http://localhost:5173";
-        var resetUrl = $"{frontendUrl.TrimEnd('/')}/reset-password?email={Uri.EscapeDataString(user.Email)}&token={Uri.EscapeDataString(rawToken)}";
         try
         {
-            await _emailSender.SendPasswordResetAsync(user.Email, resetUrl, cancellationToken);
+            await _emailSender.SendPasswordResetAsync(user.Email, rawToken, cancellationToken);
         }
         catch (Exception exception)
         {
@@ -186,6 +184,20 @@ public class AuthController : ControllerBase
         return Ok(new { message = responseMessage });
     }
 
+    [HttpPost("verify-reset-code")]
+    [AllowAnonymous]
+    public async Task<IActionResult> VerifyResetCode([FromBody] VerifyResetCodeRequest request, CancellationToken cancellationToken)
+    {
+        var email = request.Email.Trim().ToLowerInvariant();
+        var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(request.Code)));
+        var valid = await _context.PasswordResetTokens.AnyAsync(item =>
+            item.TokenHash == hash && item.User.Email.ToLower() == email &&
+            item.User.Status == Whistleblowing.Domain.Enums.UserStatus.ACTIVE &&
+            item.UsedAt == null && item.ExpiresAt > DateTime.UtcNow, cancellationToken);
+        return valid ? Ok(new { message = "Code verified." }) :
+            BadRequest(new { error = "This password reset code is invalid or has expired. Request a new code." });
+    }
+
     [HttpPost("reset-password")]
     [AllowAnonymous]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request, CancellationToken cancellationToken)
@@ -196,11 +208,16 @@ public class AuthController : ControllerBase
             .Include(item => item.User)
             .FirstOrDefaultAsync(item => item.TokenHash == tokenHash && item.User.Email.ToLower() == email, cancellationToken);
         if (resetToken is null || resetToken.UsedAt.HasValue || resetToken.ExpiresAt <= DateTime.UtcNow)
-            return BadRequest(new { error = "This password reset link is invalid or has expired. Request a new link." });
+            return BadRequest(new { error = "This password reset code is invalid or has expired. Request a new code." });
+
+        var claimed = await _context.PasswordResetTokens
+            .Where(item => item.Id == resetToken.Id && item.UsedAt == null && item.ExpiresAt > DateTime.UtcNow)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(item => item.UsedAt, DateTime.UtcNow), cancellationToken);
+        if (claimed != 1)
+            return BadRequest(new { error = "This password reset code is invalid or has expired. Request a new code." });
 
         resetToken.User.Password = _passwordHasher.Hash(request.NewPassword);
         resetToken.User.UpdatedAt = DateTime.UtcNow;
-        resetToken.UsedAt = DateTime.UtcNow;
         var otherTokens = await _context.PasswordResetTokens.Where(item => item.UserId == resetToken.UserId && item.UsedAt == null).ToListAsync(cancellationToken);
         foreach (var item in otherTokens) item.UsedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);

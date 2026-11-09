@@ -3,5 +3,6 @@ namespace Whistleblowing.Api.Services;
 public interface IEmailSender
 {
     bool IsConfigured { get; }
-    Task SendPasswordResetAsync(string email, string resetUrl, CancellationToken cancellationToken);
+    Task SendCaseStatusAsync(string email, CancellationToken cancellationToken);
+    Task SendPasswordResetAsync(string email, string resetCode, CancellationToken cancellationToken);
 }

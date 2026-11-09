@@ -77,7 +77,7 @@ const ComplaintDetails = () => {
     try {
       await api.post(`/api/Cases/${caseId}/assignments`, { investigatorIds: selectedInvestigatorIds.map(Number) }, requestConfig);
       const assignedNames = investigators.filter(item => selectedInvestigatorIds.includes(String(item.userId))).map(item => item.name).join(', ');
-      setActionMessage(`Case #${caseId} is assigned to ${assignedNames || 'the selected investigators'}. Notifications have been sent.`);
+      setActionMessage(`Concern #${id} (Case #${caseId}) is assigned to ${assignedNames || 'the selected investigators'}.`);
     } catch (error) {
       setActionError(true);
       setActionMessage(error.response?.data?.error || 'Could not assign investigators. Please try again.');
@@ -135,7 +135,7 @@ const ComplaintDetails = () => {
           </div>
           {caseId && complaint.status !== 'REJECTED' && <form onSubmit={assignInvestigators} className="grid gap-3 border-t border-slate-100 pt-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end">
             <label className="text-xs font-semibold text-slate-600">Assign investigators<InvestigatorMultiSelect investigators={investigators} selectedIds={selectedInvestigatorIds} onChange={setSelectedInvestigatorIds} disabled={actionBusy} /></label>
-            <button type="submit" disabled={actionBusy || !investigators.length || !selectedInvestigatorIds.length} className="min-h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-500/20 transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">{actionBusy ? 'Assigningâ€¦' : 'Assign investigators'}</button>
+            <button type="submit" disabled={actionBusy || !investigators.length || !selectedInvestigatorIds.length} className="min-h-10 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-2.5 text-xs font-semibold text-white shadow-md shadow-blue-500/20 transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50">{actionBusy ? 'Assigning…' : 'Assign investigators'}</button>
           </form>}
           {actionMessage && <p role={actionError ? 'alert' : 'status'} className={`rounded-xl px-3.5 py-2.5 text-xs ${actionError ? 'border border-rose-200 bg-rose-50 text-rose-700' : 'border border-emerald-200 bg-emerald-50 text-emerald-700'}`}>{actionMessage}</p>}
         </section>}
@@ -151,7 +151,7 @@ const ComplaintDetails = () => {
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-gray-500">
                 {complaint.category && <span className="rounded-md bg-white/70 px-2 py-0.5 font-medium border border-gray-200">{complaint.category}</span>}
                 {complaint.isAnonymous && <span className="rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">Anonymous</span>}
-                <span>Concern #{complaint.complaintId}</span>
+                <span>Concern #{complaint.complaintId}{caseId && ` · Case #${caseId}`}</span>
               </div>
             </div>
             <div className="shrink-0">

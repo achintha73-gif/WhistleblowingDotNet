@@ -5,8 +5,10 @@ import { useContext } from 'react';
 // Pages
 import Login from './pages/Login';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword';
 import Register from './pages/Register';
 import AccessDenied from './pages/AccessDenied';
+import NotFound from './pages/NotFound';
 import AdminDashboard from './pages/AdminDashboard';
 import ManagerDashboard from './pages/ManagerDashboard';
 import ManagerTeam from './pages/ManagerTeam';
@@ -22,6 +24,8 @@ import Notifications from './pages/Notifications';
 import Support from './pages/Support';
 import ActivityLogs from './pages/ActivityLogs';
 import ComplaintDetails from './pages/ComplaintDetails';
+import CreateCase from './pages/CreateCase';
+import AssignInvestigators from './pages/AssignInvestigators';
 import ManageDepartments from './pages/ManageDepartments';
 import CreateUser from './pages/CreateUser';
 
@@ -54,6 +58,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/register" element={<Register />} />
           <Route path="/access-denied" element={<AccessDenied />} />
           
@@ -79,9 +84,12 @@ function App() {
           {/* Employee Routes */}
           <Route path="/employee" element={<ProtectedRoute allowedRoles={['USER']}><EmployeeDashboard /></ProtectedRoute>} />
           <Route path="/submit-complaint" element={<ProtectedRoute allowedRoles={['USER']}><SubmitComplaint /></ProtectedRoute>} />
-          <Route path="/my-complaints" element={<ProtectedRoute allowedRoles={['USER']}><MyComplaints /></ProtectedRoute>} />
-          <Route path="/complaint/:id" element={<ProtectedRoute allowedRoles={['USER']}><ComplaintDetails /></ProtectedRoute>} />
+          <Route path="/my-complaints" element={<ProtectedRoute allowedRoles={['USER', 'MANAGER', 'ADMIN']}><MyComplaints /></ProtectedRoute>} />
+          <Route path="/complaint/:id" element={<ProtectedRoute allowedRoles={['USER', 'MANAGER', 'ADMIN']}><ComplaintDetails /></ProtectedRoute>} />
           
+          <Route path="/complaint/:id/create-case" element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}><CreateCase /></ProtectedRoute>} />
+          <Route path="/case/:id/assign-investigators" element={<ProtectedRoute allowedRoles={['ADMIN', 'MANAGER']}><AssignInvestigators /></ProtectedRoute>} />
+
           {/* Shared Auth Routes */}
           <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
           <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
@@ -91,6 +99,7 @@ function App() {
           {/* Investigator Routes */}
           <Route path="/investigator" element={<ProtectedRoute allowedRoles={['INVESTIGATOR']}><InvestigatorDashboard /></ProtectedRoute>} />
           <Route path="/case/:id" element={<ProtectedRoute allowedRoles={['INVESTIGATOR', 'ADMIN', 'MANAGER']}><CaseDetails /></ProtectedRoute>} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </Router>
     </AuthProvider>

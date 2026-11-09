@@ -60,7 +60,7 @@ const ActivityLogs = () => {
                       <td className="whitespace-nowrap px-5 py-4 text-gray-600">{formatColomboDateTime(log.createdAt)}</td>
                       <td className="px-5 py-4 font-medium text-gray-900">{log.eventType}</td>
                       <td className="px-5 py-4 text-gray-700">{log.description}</td>
-                      <td className="px-5 py-4 text-gray-600">{log.entityType || 'â€”'}</td>
+                      <td className="px-5 py-4 text-gray-600">{log.entityType || '—'}</td>
                       <td className="px-5 py-4 text-gray-600">{log.actorName || 'System'}</td>
                     </tr>
                   ))}

@@ -1,3 +1,4 @@
+import { normalizeCases } from '../utils/cases';
 import { Link } from 'react-router-dom';
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
@@ -9,23 +10,20 @@ const ManagerDashboard = () => {
   const { token, user } = useContext(AuthContext);
   const [stats, setStats] = useState({ pending: 0, underReview: 0, activeCases: 0, pendingReview: 0 });
   const [recentComplaints, setRecentComplaints] = useState([]);
+  const [allComplaints, setAllComplaints] = useState([]);
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const chartData = [
-    { name: 'Mon', concerns: 2 },
-    { name: 'Tue', concerns: 5 },
-    { name: 'Wed', concerns: 3 },
-    { name: 'Thu', concerns: 7 },
-    { name: 'Fri', concerns: 4 },
-    { name: 'Sat', concerns: 1 },
-    { name: 'Sun', concerns: 0 },
-  ];
-
+  const chartData = Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(); day.setHours(0, 0, 0, 0); day.setDate(day.getDate() - 6 + i);
+    const next = new Date(day); next.setDate(day.getDate() + 1);
+    return { name: day.toLocaleDateString(undefined, { weekday: 'short' }), concerns: allComplaints.filter(c => { const date = new Date(c.createdAt); return date >= day && date < next; }).length };
+  });
   const pieData = [
-    { name: 'Pending', value: 4, color: '#f59e0b' },
-    { name: 'Under Review', value: 2, color: '#3b82f6' },
-    { name: 'Active Cases', value: 6, color: '#8b5cf6' },
-    { name: 'Closed', value: 3, color: '#10b981' },
+    { name: 'Pending', value: allComplaints.filter(c => c.status === 'PENDING').length, color: '#f59e0b' },
+    { name: 'Under Review', value: allComplaints.filter(c => c.status === 'UNDER_REVIEW').length, color: '#3b82f6' },
+    { name: 'Converted', value: allComplaints.filter(c => c.status === 'CONVERTED_TO_CASE').length, color: '#8b5cf6' },
+    { name: 'Other', value: allComplaints.filter(c => !['PENDING', 'UNDER_REVIEW', 'CONVERTED_TO_CASE'].includes(c.status)).length, color: '#10b981' },
   ];
 
   useEffect(() => {
@@ -37,7 +35,8 @@ const ManagerDashboard = () => {
         ]);
 
         const complaints = compRes.data;
-        const cases = caseRes.data;
+        const cases = normalizeCases(caseRes.data);
+        setAllComplaints(complaints);
 
         setStats({
           pending: complaints.filter(c => c.status === 'PENDING').length,
@@ -47,7 +46,7 @@ const ManagerDashboard = () => {
         });
 
         setRecentComplaints(complaints.slice(0, 5));
-      } catch (err) { console.error(err); } finally { setLoading(false); }
+      } catch { setLoadError(true); } finally { setLoading(false); }
     };
     fetchData();
   }, [token]);
@@ -57,6 +56,7 @@ const ManagerDashboard = () => {
   return (
     <Layout title="Manager Dashboard">
       <div className="min-w-0 space-y-4 sm:space-y-6">
+        {loadError && <div role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">Dashboard data could not be loaded. Please refresh and try again.</div>}
 
         <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
           <div className="min-w-0">
@@ -105,7 +105,7 @@ const ManagerDashboard = () => {
           <div className="min-w-0 rounded-2xl border border-white/60 bg-white/60 p-4 shadow-lg backdrop-blur-xl sm:p-6 lg:col-span-2">
             <div className="mb-4 flex justify-between items-center">
               <h2 className="text-base font-semibold text-gray-900 sm:text-lg">Weekly Concerns</h2>
-              <span className="rounded-md bg-gray-100 px-2 py-1 text-[10px] font-medium text-gray-500 sm:text-xs">This Week</span>
+              <span className="rounded-md bg-gray-100 px-2 py-1 text-[10px] font-medium text-gray-500 sm:text-xs">Last 7 days</span>
             </div>
             <div className="h-56 w-full min-w-0 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
@@ -121,7 +121,7 @@ const ManagerDashboard = () => {
           </div>
 
           <div className="min-w-0 rounded-2xl border border-white/60 bg-white/60 p-4 shadow-lg backdrop-blur-xl sm:p-6">
-            <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">Case Distribution</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">Concern Distribution</h2>
             <div className="flex h-52 w-full min-w-0 justify-center sm:h-56">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -150,7 +150,7 @@ const ManagerDashboard = () => {
 
         {/* Recent Concerns Table */}
         <div className="min-w-0 rounded-2xl border border-white/60 bg-white/60 p-4 shadow-lg backdrop-blur-xl sm:p-6">
-          <h2 className="mb-4 text-base font-semibold text-gray-900 sm:text-lg">Recent Concerns</h2>
+          <div className="mb-4 flex items-center justify-between gap-3"><h2 className="text-base font-semibold text-gray-900 sm:text-lg">Recent Concerns</h2><Link to="/my-complaints" className="text-sm font-semibold text-blue-700 hover:underline">View all concerns</Link></div>
           <div className="space-y-3 sm:hidden">
             {recentComplaints.length === 0 ? (
               <p className="py-4 text-center text-sm text-gray-500">No recent concerns.</p>

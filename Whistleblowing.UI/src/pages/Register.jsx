@@ -75,7 +75,7 @@ const Register = () => {
               <input id="register-confirm-password" name="confirmPassword" type="password" autoComplete="new-password" minLength={8} required value={form.confirmPassword} onChange={handleChange} placeholder="Enter your password again" className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" />
             </div>
             <button type="submit" disabled={loading} className="flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-wait disabled:opacity-60">
-              {loading ? 'Creating accountâ€¦' : 'Create account'}
+              {loading ? 'Creating account…' : 'Create account'}
             </button>
           </form>
         </section>

@@ -10,6 +10,8 @@ const MyComplaints = () => {
   const [complaints, setComplaints] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleteError, setDeleteError] = useState('');
   const isStaffView = ['ADMIN', 'MANAGER'].includes(user?.roleName);
 
   useEffect(() => {
@@ -20,7 +22,22 @@ const MyComplaints = () => {
       } catch { setError(true); } finally { setLoading(false); }
     };
     fetchComplaints();
+    const refreshOnFocus = () => fetchComplaints();
+    window.addEventListener('focus', refreshOnFocus);
+    return () => window.removeEventListener('focus', refreshOnFocus);
   }, [token]);
+
+  const deleteConcern = async (complaint) => {
+    if (!window.confirm(`Permanently delete "${complaint.title}"? This cannot be undone.`)) return;
+    setDeleteError('');
+    setDeletingId(complaint.complaintId);
+    try {
+      await api.delete(`/api/Complaints/${complaint.complaintId}`, { headers: { Authorization: `Bearer ${token}` } });
+      setComplaints(current => current.filter(item => item.complaintId !== complaint.complaintId));
+    } catch (err) {
+      setDeleteError(err.response?.data?.error || 'Could not delete the concern. Please try again.');
+    } finally { setDeletingId(null); }
+  };
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -53,6 +70,9 @@ const MyComplaints = () => {
           </Link>}
         </div>
 
+        {deleteError && <div role="alert" className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">{deleteError}</div>}
+        {!isStaffView && !loading && !error && complaints.some(c => c.status !== 'PENDING' || c.hasCase) && <p className="text-xs text-slate-500">Only pending concerns can be deleted. Contact the team about concerns already under review.</p>}
+
         {loading ? (
           <p className="text-gray-500">Loading...</p>
         ) : error ? (
@@ -65,7 +85,8 @@ const MyComplaints = () => {
         ) : (
           <div className="space-y-3">
             {complaints.map(c => (
-              <Link key={c.complaintId} to={`/complaint/${c.complaintId}`} className="group block rounded-2xl border border-white/75 bg-white/70 p-4 shadow-[0_8px_16px_rgba(30,41,59,.10)] backdrop-blur-xl transition hover:-translate-y-0.5 hover:bg-white/85 hover:shadow-lg focus-visible:outline-offset-4 sm:p-5">
+              <div key={c.complaintId} className="rounded-2xl border border-white/75 bg-white/70 p-4 shadow-[0_8px_16px_rgba(30,41,59,.10)] backdrop-blur-xl sm:p-5">
+              <Link to={`/complaint/${c.complaintId}`} className="group block rounded-xl focus-visible:outline-offset-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
@@ -82,6 +103,8 @@ const MyComplaints = () => {
                   <span className={`shrink-0 inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getStatusBadge(c.status)}`}>{c.status}</span>
                 </div>
               </Link>
+              {!isStaffView && c.status === 'PENDING' && !c.hasCase && <div className="mt-4 flex justify-end border-t border-slate-200 pt-3"><button type="button" disabled={deletingId !== null} onClick={() => deleteConcern(c)} className="rounded-lg border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50">{deletingId === c.complaintId ? 'Deleting...' : 'Delete concern'}</button></div>}
+              </div>
             ))}
           </div>
         )}

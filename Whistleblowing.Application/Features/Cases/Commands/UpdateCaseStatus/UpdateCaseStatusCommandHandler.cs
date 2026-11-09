@@ -62,6 +62,14 @@ public class UpdateCaseStatusCommandHandler : IRequestHandler<UpdateCaseStatusCo
             _context.Notifications.Add(new Notification { UserId = caseEntity.Complaint.UserId.Value, Message = statusMessage, CreatedAt = DateTime.UtcNow });
         }
 
+        if (previousStatus != request.NewStatus && _currentUser.RoleName == "INVESTIGATOR")
+        {
+            var managerIds = await _context.Users.Where(u => u.Role.RoleName == "MANAGER" && u.Status == UserStatus.ACTIVE)
+                .Select(u => u.UserId).ToListAsync(cancellationToken);
+            foreach (var managerId in managerIds)
+                _context.Notifications.Add(new Notification { UserId = managerId, Message = $"Case #{caseEntity.CaseId} status was updated to {request.NewStatus.ToString().Replace('_', ' ')}.", CreatedAt = DateTime.UtcNow });
+        }
+
         await _context.SaveChangesAsync(cancellationToken);
         return true;
     }

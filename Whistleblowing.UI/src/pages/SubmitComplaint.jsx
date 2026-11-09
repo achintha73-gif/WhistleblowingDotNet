@@ -126,12 +126,10 @@ const SubmitComplaint = () => {
             </div>
 
             <div className="rounded-2xl border border-blue-200 bg-blue-50/40 p-4 sm:p-5">
-            {form.isAnonymous && <Recaptcha onChange={setCaptchaToken} resetKey={captchaReset} />}
-
-            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><label htmlFor="concern-evidence" className="cursor-pointer text-xs font-semibold text-slate-800">Attach Evidence <span className="font-normal text-slate-500">(optional)</span></label><span className="text-[10px] text-slate-500">Max 10 MB each Â· 25 MB total</span></div>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"><label htmlFor="concern-evidence" className="cursor-pointer text-xs font-semibold text-slate-800">Attach Evidence <span className="font-normal text-slate-500">(optional)</span></label><span className="text-[10px] text-slate-500">Max 10 MB each · 25 MB total</span></div>
               <label htmlFor="concern-evidence" onDragOver={event => event.preventDefault()} onDrop={event => { event.preventDefault(); chooseFiles(event.dataTransfer.files); }} className="mt-3 flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-white/80 px-4 py-4 text-center transition hover:border-blue-400 hover:bg-white">
                 <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-blue-50 text-blue-600"><svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v5h14v-5"/></svg></span>
-                <span className="text-xs font-semibold text-slate-700">Drag and drop files here</span><span className="mt-1 text-[10px] text-slate-500">or click to browse Â· PDF, images, TXT Â· up to 5 files</span>
+                <span className="text-xs font-semibold text-slate-700">Drag and drop files here</span><span className="mt-1 text-[10px] text-slate-500">or click to browse · PDF, images, TXT · up to 5 files</span>
               </label>
               <input id="concern-evidence" type="file" accept="image/jpeg,image/png,image/gif,image/webp,.pdf,.txt,text/plain" multiple className="sr-only" onChange={event => { chooseFiles(event.target.files); event.target.value = ''; }} />
               {files.length > 0 && <ul className="mt-3 space-y-2">{files.map((file, index) => <li key={`${file.name}-${index}`} className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs"><span className="min-w-0 truncate font-medium text-slate-700">{file.name}<span className="ml-2 text-[10px] font-normal text-slate-400">{(file.size / (1024 * 1024)).toFixed(2)} MB</span></span><button type="button" onClick={() => setFiles(current => current.filter((_, fileIndex) => fileIndex !== index))} aria-label={`Remove ${file.name}`} className="shrink-0 rounded px-2 py-1 text-slate-500 hover:bg-red-50 hover:text-red-700">Remove</button></li>)}</ul>}
@@ -140,15 +138,16 @@ const SubmitComplaint = () => {
             </div>
 
             <label className="flex cursor-pointer items-start gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 transition hover:bg-slate-50">
-              <input type="checkbox" checked={form.isAnonymous} onChange={event => setForm(current => ({ ...current, isAnonymous: event.target.checked }))} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
+              <input type="checkbox" checked={form.isAnonymous} onChange={event => { const checked = event.target.checked; setCaptchaToken(''); setForm(current => ({ ...current, isAnonymous: checked })); }} className="mt-0.5 h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500" />
               <span><span className="flex items-center gap-2 text-xs font-semibold text-slate-800"><svg className="h-4 w-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M7 10V7a5 5 0 0 1 10 0v3m-12 0h14v11H5V10Z"/></svg>Submit anonymously</span><span className="mt-1 block text-[10px] leading-4 text-slate-500">Your name and email will not be linked to this concern. A reference code will be provided.</span></span>
             </label>
+
+            {form.isAnonymous && <Recaptcha onChange={setCaptchaToken} resetKey={captchaReset} />}
 
             <div className="flex flex-col-reverse gap-3 border-t border-slate-100 pt-5 sm:flex-row sm:justify-end">
               <Link to="/my-complaints" className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white px-5 py-3 text-xs font-semibold text-slate-700 transition hover:bg-slate-50">Cancel</Link>
               <button type="submit" disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-3 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-4 focus:ring-blue-500/20 disabled:cursor-wait disabled:opacity-60">{loading ? 'Submitting...' : form.isAnonymous ? 'Submit concern anonymously' : 'Submit Concern'}{!loading && <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 12h14m-6-6 6 6-6 6"/></svg>}</button>
             </div>
-          {form.isAnonymous && <Recaptcha onChange={setCaptchaToken} resetKey={captchaReset} />}
           </form>
         </section>
       </div>

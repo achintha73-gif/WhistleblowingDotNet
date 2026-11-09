@@ -34,6 +34,7 @@ public class GetComplaintsQueryHandler
         // Base query
         IQueryable<Whistleblowing.Domain.Entities.Complaint> query = _context.Complaints
             .Include(c => c.User)
+            .Include(c => c.Case)
             .AsNoTracking();
 
         // 🔍 Role-based filtering
@@ -42,9 +43,11 @@ public class GetComplaintsQueryHandler
             // Employee sees only their own complaints (non-anonymous)
             query = query.Where(c => c.UserId == _currentUser.UserId);
         }
-        else if (_currentUser.RoleName == "MANAGER" ||
-                 _currentUser.RoleName == "INVESTIGATOR" ||
-                 _currentUser.RoleName == "ADMIN")
+        else if (_currentUser.RoleName == "INVESTIGATOR")
+        {
+            query = query.Where(c => c.Case != null && (c.Case.AssignedInvestigatorId == _currentUser.UserId || c.Case.InvestigatorAssignments.Any(a => a.InvestigatorId == _currentUser.UserId)));
+        }
+        else if (_currentUser.RoleName == "MANAGER" || _currentUser.RoleName == "ADMIN")
         {
             // Staff sees all
             // No filter
@@ -77,6 +80,7 @@ public class GetComplaintsQueryHandler
             Category = c.Category,
             Status = c.Status.ToString(),
             IsAnonymous = c.IsAnonymous,
+            HasCase = c.Case != null,
             CreatedAt = c.CreatedAt,
             UpdatedAt = c.UpdatedAt,
             AuthorId = c.UserId,

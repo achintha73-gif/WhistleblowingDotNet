@@ -85,7 +85,7 @@ const Notifications = () => {
 
                 {!n.isRead && (
                   <button onClick={() => markAsRead(n.notificationId)} disabled={readingIds.includes(n.notificationId)} className="shrink-0 inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 px-3 py-1.5 text-xs font-semibold text-white shadow-md transition hover:from-blue-700 hover:to-indigo-700 disabled:cursor-wait disabled:opacity-60">
-                    {readingIds.includes(n.notificationId) ? 'Savingâ€¦' : 'Mark read'}
+                    {readingIds.includes(n.notificationId) ? 'Saving…' : 'Mark read'}
                   </button>
                 )}
               </li>

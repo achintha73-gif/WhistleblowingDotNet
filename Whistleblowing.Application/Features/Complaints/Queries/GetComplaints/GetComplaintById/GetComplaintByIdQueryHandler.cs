@@ -44,10 +44,10 @@ public class GetComplaintByIdQueryHandler
         }
 
         // Access control
-        var isStaff =
-            _currentUser.RoleName == "MANAGER" ||
-            _currentUser.RoleName == "INVESTIGATOR" ||
-            _currentUser.RoleName == "ADMIN";
+        var assignedInvestigator = _currentUser.RoleName == "INVESTIGATOR" &&
+            await _context.Cases.AnyAsync(c => c.ComplaintId == complaint.ComplaintId &&
+                (c.AssignedInvestigatorId == _currentUser.UserId || c.InvestigatorAssignments.Any(a => a.InvestigatorId == _currentUser.UserId)), cancellationToken);
+        var isStaff = _currentUser.RoleName == "MANAGER" || _currentUser.RoleName == "ADMIN" || assignedInvestigator;
 
         if (!isStaff && complaint.UserId != _currentUser.UserId)
         {
