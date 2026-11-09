@@ -1,3 +1,24 @@
+## 🚀 Tech Stack
+
+### **Backend**
+![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-239120?style=flat-square&logo=c-sharp&logoColor=white)
+![ASP.NET Core](https://img.shields.io/badge/ASP.NET_Core-Web_API-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![SQL Server](https://img.shields.io/badge/SQL_Server-CC2927?style=flat-square&logo=microsoft-sql-server&logoColor=white)
+![Entity Framework](https://img.shields.io/badge/Entity_Framework-Core-512BD4?style=flat-square&logo=dotnet&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-000000?style=flat-square&logo=json-web-tokens&logoColor=white)
+
+### **Frontend**
+![React](https://img.shields.io/badge/React-20232A?style=flat-square&logo=react&logoColor=61DAFB)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-UI-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)
+![Axios](https://img.shields.io/badge/Axios-5A29E4?style=flat-square&logo=axios&logoColor=white)
+
+### **Architecture & Patterns**
+![Clean Architecture](https://img.shields.io/badge/Clean_Architecture-4A148C?style=flat-square)
+![CQRS](https://img.shields.io/badge/CQRS-FF5722?style=flat-square)
+![MediatR](https://img.shields.io/badge/MediatR-0078D7?style=flat-square)
+![Dapper](https://img.shields.io/badge/Dapper-808080?style=flat-square)
 # 🛡️ Whistleblowing Management System
 
 A secure, enterprise-grade workplace reporting platform that allows employees to raise concerns anonymously, track case progress, and support investigations with evidence and audit-friendly workflows.
